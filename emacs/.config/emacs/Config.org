@@ -1,56 +1,60 @@
-#+Title: Emacs Config
+#-*- mode: org -*-
 #+author: Oliver Epper <oliver.epper@gmail.com>
 #+property: header-args:emacs-lisp :tangle ~/.config/emacs/init.el :mkdirp yes
+#+STARTUP: overview
 
-* Start
+* Intro
+:PROPERTIES:
+:VISIBILITY: all
+:END:
 
-Following is the literate programming version of my Emacs config. It consists of elisp blocks that are tangled into XDG compatible config files. Heavy inspiration is drawn from [[https://github.com/daviwil/emacs-from-scratch][Emacs From Scratch]]
+This is the literate programming version of my Emacs config. Blocks are tangled into XDG compatible config files in [[~/.config/emacs/init.el][init.el]]. See [[#auto_tangle][Auto-tangle]].
 
-#+NAME: my-name
+** Features
+
+- a comment in [[~/.config/emacs/init.el][init.el]] hinting that the file is generated
+- automatically tangle this file into ~init.el~
+
+*** TODO add the missing parts
+- would be cool to generate a list of features collected from the =ENABLES= property.
+
+* Basic Config
+
+** Generate ~init.el~ Header
+
+#+NAME: filename
 #+begin_src emacs-lisp :tangle no :eval (setq org-confirm-babel-evaluate nil) :results values
   (eval buffer-file-name)
 #+end_src
 
-#+NAME: my-info
+#+NAME: version_info
 #+begin_src emacs-lisp :tangle no :eval (setq org-confirm-babel-evaluate nil) :results values
   (eval (concat (format "Emacs version: %s\n" (emacs-version))
-                   (format "org version: %s" (org-version))))
+                (format "Org version: %s" (org-version))))
 #+end_src
 
 #+begin_src emacs-lisp :noweb yes
-  ;; This file is generated from <<my-name()>>.
-  ;; <<my-info()>>
+  ;; This file is generated from <<filename()>>
+  ;; <<version_info()>>
 #+end_src
 
-* Keybindings/Features (incomplete list)
-** add Todo into inbox =C-c t=
-** Find Roam Note =C-c n f= 
-* Startup Performance (disabled via :tangle no)
+** Custom Variables
 
-#+begin_src emacs-lisp :tangle no
-  ;; The default is 800 kilobytes.  Measured in bytes.
-  (setq gc-cons-threshold (* 50 1000 1000))
-
-  (defun efs/display-startup-time ()
-    (message "Emacs loaded in %s with %d garbage collections."
-             (format "%.2f seconds"
-                     (float-time
-                       (time-subtract after-init-time before-init-time)))
-             gcs-done))
-
-  (add-hook 'emacs-startup-hook #'efs/display-startup-time)
+#+begin_src emacs-lisp
+  (setq custom-file (locate-user-emacs-file "custom-vars.el"))
+  (load custom-file 'noerror 'nomessage)
 #+end_src
 
-* Package System
+** Packages
 
-The following sets up package sources, refreshes and installs use-package. It configures use-package to automatically install missing but required packages.
+Sets up packages sources, refreshes and installs ~use-package~. Configures ~use-package~ to automatically install missing but required packages.
 
 #+begin_src emacs-lisp
   (require 'package)
 
   (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-			   ("org" . "https://orgmode.org/elpa/")
-			   ("elpa" . "https://elpa.gnu.org/packages/")))
+                           ("org" . "https://orgmode.org/elpa/")
+                           ("elpa" . "https://elpa.gnu.org/packages/")))
 
   (package-initialize)
   (unless package-archive-contents
@@ -63,175 +67,233 @@ The following sets up package sources, refreshes and installs use-package. It co
   (setq use-package-always-ensure t) ;; install missing packages automatically
 #+end_src
 
+** Auto-tangle
+:PROPERTIES:
+:CUSTOM_ID: auto_tangle
+:END:
+
+#+begin_src emacs-lisp
+  (defun oe/org-babel-tangle-config ()
+    (let ((file-dir (file-name-directory (buffer-file-name))))
+      (when (or (string-prefix-p (expand-file-name user-emacs-directory) file-dir)
+                (string-prefix-p (expand-file-name "~/dotfiles/emacs/.config/emacs/") file-dir))
+        (let ((org-confirm-babel-evaluate nil))
+          (org-babel-tangle)))))
+
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'oe/org-babel-tangle-config)))
+#+end_src
+
+** Key Bindings
+
+#+begin_src emacs-lisp
+  (defun oe/open-new-line ()
+    (interactive)
+    (end-of-line)    
+    (newline)
+    (indent-according-to-mode))
+
+  (global-set-key (kbd "C-c r") #'recentf-open-files)
+  (global-set-key (kbd "C-c c") #'oe/frame-recenter)
+  (global-set-key (kbd "<f4>") #'oe/cycle-themes-and-print-log-msg)
+  (global-set-key (kbd "C-c o") #'oe/open-new-line)
+#+end_src
+
+** Editing
+
+*** Audio Bell
+
+#+begin_src emacs-lisp
+  (setq ring-bell-function 'ignore)
+#+end_src
+
+*** Move Text
+
+Move text with M-up, or M-down
+
+#+begin_src emacs-lisp
+  (use-package move-text
+    ;; :config
+    ;; (move-text-default-bindings)
+    :bind
+    ("C-c <up>" . move-text-up)
+    ("C-c <down>" . move-text-down)
+    )
+#+end_src
+
+*** Automatically revert buffers
+
+Automatically revert buffers when file changes on disk
+
+#+begin_src emacs-lisp
+  (global-auto-revert-mode 1)
+#+end_src
+
+** File Settings
+
+*** Trash / Recycle Bin Settings
+
+#+begin_src emacs-lisp
+  (when (memq window-system '(mac ns))
+    (defun system-move-file-to-trash (path)
+      "Moves file at PATH to the macOS Trash accorsing to 'move-file-to-trash' convention. Relies on the command-line utility 'trash' to be installed."
+      (shell-command (concat "trash -v \"" path "\""
+                             "| sed -e 's/^/Tashed: /'")
+                     nil ;; name of output buffer
+                     "*Trash Error Buffer*")))
+
+  (setq trash-directory "~/.Trash") ;; fallback for 'move-file-to-trash'
+  (setq delete-by-moving-to-trash t)
+#+end_src
+
+*** Reveal in OSX Finder
+
+#+begin_src emacs-lisp
+  (use-package reveal-in-osx-finder
+    :bind ("C-c f" . #'reveal-in-osx-finder))
+#+end_src
+
 * UI
-A few things are needed to give Emacs are more modern and useable look. Your milage may vary.
 
 ** Window Config
-I like to supress all startup messages. Even in the echo-area. If you want that too make sure to enter your username in the block below.
 
 #+begin_src emacs-lisp
   (setq inhibit-startup-message t)
   (setq inhibit-startup-echo-area-message "oliver") ;; enter your username
- 
+
   (tool-bar-mode -1)
 
   (setq default-frame-alist
-	'((width . 120)
-	  (height . 46)
-	  (vertical-scroll-bars . nil)
-	  ;; some breathing room
-	  (left-fringe . 25)
-	  (right-fringe . 25)))
+        '(
+          (user-position . t)
+          (top . 0.5)
+          (left . 0.5)
+          (width . 160)
+          (height . 45)
+          (vertical-scroll-bars . nil)
+          ;; add some breathing room
+          ;; (left-fringe . 20)
+          ;; (right-fringe . 20)
+          ))
+
+  (defun oe/frame-recenter (&optional frame)
+    "Center FRAME on the screen.
+  FRAME can be a frame name, a terminal name, or a frame.
+  If FRAME is omitted or nil, the current frame is used."
+    (interactive)
+    (unless (eq 'maximised (frame-parameter frame 'fullscreen))
+      (modify-frame-parameters
+       frame '(
+               (user-position . t)
+               (top . 0.5)
+               (left . 0.5)
+               ))))
+
+  (defun oe/frame-restore-main-frame ()
+    (interactive)
+    (modify-frame-parameters nil default-frame-alist))
 #+end_src
 
-** Readablility
+** Theme
+
+*** Modus Themes
 
 #+begin_src emacs-lisp
-  (setq-default line-spacing 0.25)
+  (use-package modus-themes
+    :config
+    (setq modus-themes-disable-other-themes t)
+    ;; overrides
+    ;; (setq modus-themes-common-palette-overrides
+    ;;   '(
+    ;;     (border-mode-line-active bg-mode-line-active)
+    ;;     (border-mode-line-inactive bg-mode-line-inactive)
+    ;;     (bg-region "mac:selectedTextBackgroundColor")
+    ;;     (fg-region "mac:selectedTextColor"))
+    ;;   )
+
+    :init
+    (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))
+
+    (defun oe/modus-themes-init ()
+      ;; cadr because I want to start with vivendi
+      (load-theme (cadr modus-themes-to-toggle) :no-confirm)
+      (defvar modus-themes--cycle-themes modus-themes-items))
+
+    :bind ("<f5>" . modus-themes-toggle)
+    :hook (after-init . oe/modus-themes-init))
 #+end_src
 
-** Themes
-*** Classics
-
-#+begin_src emacs-lisp :tangle ./early-init.el
-  ;; (load-theme 'adwaita t)
-  ;; (load-theme 'deeper-blue t)
-  ;; (load-theme 'dichromacy t)
-  ;; (load-theme 'leuven t)
-  ;; (load-theme 'light-blue t) ;; obsolete
-  ;; (load-theme 'manoj-dark t)
-  ;; (load-theme 'misterioso t)
-  ;; (load-theme 'modus-operandi t)
-  ;; (load-theme 'modus- t)
-  ;; (load-theme 'modus-vivendi t)
-  ;; (load-theme 'tango-dark t)
-  ;; (load-theme 'tango t)
-  ;; (load-theme 'tsdh-dark t)
-  ;; (load-theme 'tsdh-light t)
-  ;; (load-theme 'wheatgrass t)
-  ;; (load-theme 'whiteboard t)
-  ;; (load-theme 'wombat t)
-#+end_src
-
-*** Doom Themes
+*** Shuffle Themes
 
 #+begin_src emacs-lisp
-  (use-package doom-themes
-  ;;   :init (load-theme 'doom-1337 t))
-  ;;   :init (load-theme 'doom-Iosvkem t))
-  ;;   :init (load-theme 'doom-acario-dark t))
-  ;;   :init (load-theme 'doom-acario-light t))
-  ;;   :init (load-theme 'doom-ayu-light t))
-  ;;   :init (load-theme 'doom-ayu-mirage t))
-  ;;   :init (load-theme 'doom-badger t))
-  ;;   :init (load-theme 'doom-challenger-deep t))
-  ;;   :init (load-theme 'doom-city-lights t))
-  ;;   :init (load-theme 'doom-dark+ t))
-  ;;   :init (load-theme 'doom-dracula t))
-  ;;   :init (load-theme 'doom-ephemeral t))
-  ;;   :init (load-theme 'doom-fairy-floss t))
-  ;;   :init (load-theme 'doom-flatwhite t))
-  ;;   :init (load-theme 'doom-gruvbox-light t))
-  ;;   :init (load-theme 'doom-gruvbox t))
-  ;;   :init (load-theme 'doom-henna t))
-  ;;   :init (load-theme 'doom-homage-black t))
-  ;;   :init (load-theme 'doom-homage-white t))
-  ;;   :init (load-theme 'doom-horizon t))
-  ;;   :init (load-theme 'doom-ir-black t))
-  ;;   :init (load-theme 'doom-laserwave t))
-  ;;   :init (load-theme 'doom-manegarm t))
-  ;;   :init (load-theme 'doom-material t))
-  ;;   :init (load-theme 'doom-miramare t))
-  ;;   :init (load-theme 'doom-molokai t))
-  ;;   :init (load-theme 'doom-monokai-classic t))
-  ;;   :init (load-theme 'doom-monokai-machine t))
-  ;;   :init (load-theme 'doom-monokai-octagon t))
-  ;;   :init (load-theme 'doom-monokai-pro t))
-  ;;   :init (load-theme 'doom-monokai-ristretto t))
-  ;;   :init (load-theme 'doom-monokai-spectrum t))
-  ;;   :init (load-theme 'doom-moonlight t))
-  ;;   :init (load-theme 'doom-nord-light t))
-  ;;   :init (load-theme 'doom-nord t))
-  ;;   :init (load-theme 'doom-nova t))
-  ;;   :init (load-theme 'doom-oceanic-next t))
-  ;;   :init (load-theme 'doom-old-hope t))
-     :init (load-theme 'doom-one-light t))
-  ;;   :init (load-theme 'doom-one t))
-  ;;   :init (load-theme 'doom-opera-light t))
-  ;;   :init (load-theme 'doom-opera t))
-  ;;   :init (load-theme 'doom-outrun-electric t))
-  ;;   :init (load-theme 'doom-palenight t))
-  ;;   :init (load-theme 'doom-peacock t))
-  ;;   :init (load-theme 'doom-plain-dark t))
-  ;;   :init (load-theme 'doom-plain t))
-  ;;   :init (load-theme 'doom-rouge t))
-  ;;   :init (load-theme 'doom-shades-of-purple t))
-  ;;   :init (load-theme 'doom-snazzy t))
-  ;;   :init (load-theme 'doom-solarized-dark-high-contrast t))
-  ;;   :init (load-theme 'doom-solarized-dark t))
-  ;;   :init (load-theme 'doom-solarized-light t))
-  ;;   :init (load-theme 'doom-sourcerer t))
-  ;;   :init (load-theme 'doom-spacegrey t))
-  ;;   :init (load-theme 'doom-tomorrow-day t))
-  ;;   :init (load-theme 'doom-tomorrow-night t))
-  ;;   :init (load-theme 'doom-vibrant t))
-  ;;   :init (load-theme 'doom-wilmersdorf t))
-  ;;   :init (load-theme 'doom-xcode t))
-  ;;   :init (load-theme 'doom-zenburn t))
+  ;; helper function
+  (defun oe/org-mode-restart-when-enabled ()
+    "Restarts org-mode then it is active in the current buffer."
+    (when (fboundp 'org-mode)
+      (when (eq major-mode 'org-mode)
+        (org-mode-restart))))
+
+  ;; cycle through themes
+  (defun oe/rotate-list (list)
+    (when list
+      (append (cdr list) (list (car list)))))
+
+  (defun oe/cycle-themes (theme-list)
+    (load-theme (car theme-list) :no-confirm)
+    (oe/org-mode-restart-when-enabled)
+    (oe/rotate-list theme-list))
+
+  (defun oe/cycle-themes-and-print-log-msg ()
+    (interactive)
+    (setq modus-themes--cycle-themes (oe/cycle-themes modus-themes--cycle-themes))
+    (message "Theme: %s selected" (car (reverse modus-themes--cycle-themes))))
 #+end_src
 
-*** Doom Modeline
+*** advice modus-theme-toggle with org-mode-restart
 
 #+begin_src emacs-lisp
-  (use-package all-the-icons)
-
-  (use-package doom-modeline
-    :init (doom-modeline-mode 1))
-    ;; :custom ((doom-modeline-height 10)))
-
-  (defun oe/doom-modeline--font-height ()
-    "Calc the actual char height of the mode-line."
-    (+ (frame-char-height) 2))
-  (advice-add #'doom-modeline--font-height :override #'oe/doom-modeline--font-height)
+  (advice-add 'modus-themes-toggle :after #'oe/org-mode-restart-when-enabled)
 #+end_src
 
 ** Fonts
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font "Menlo" :height 140)
-  (set-face-attribute 'variable-pitch nil :font "SF Pro Text" :height 140)
-  (set-face-attribute 'mode-line nil :height 120)
-  (with-eval-after-load 'org-faces
-    (set-face-attribute 'org-block nil :font "Menlo" :height 140)
-    (set-face-attribute 'org-table nil :font "Menlo" :height 140))
+  (set-frame-font "JetBrains Mono-13" nil t)
 #+end_src
 
-** Which Key
+** Readability
 
-[[https://github.com/justbur/emacs-which-key][which-key]]
+*** Line-Spacing
 
 #+begin_src emacs-lisp
-  (use-package which-key
-    :defer 0
-    :diminish which-key-mode
-    :config
-    (which-key-mode)
-    (setq which-key-idle-delay 1))
+  (setq-default line-spacing 0.2)
 #+end_src
 
-** Counsel & Ivy
+*** Adaptive-Wrap
 
-#+begin_src emacs-lisp :tangle no
- (use-package counsel)
+#+begin_src emacs-lisp
+  (use-package adaptive-wrap)
 
- (use-package ivy :demand
-   :config
-   (setq ivy-use-virtual-buffers t ivy-count-format "%d/%d "))
+  (defun oe/enable-indent-for-wrapped-lines ()
+    (visual-line-mode 1)
+    (adaptive-wrap-prefix-mode 1)
+    (setq-default adaptive-wrap-extra-indent 6))
 
- (ivy-mode 1)
+  (add-hook 'text-mode-hook 'oe/enable-indent-for-wrapped-lines)
+#+end_src
+
+** Line Numbers
+
+#+begin_src emacs-lisp
+  (setq-default display-line-numbers 'visual)
+  (setq-default display-line-numbers-width 3)
+
+  (custom-set-faces
+   '(line-number ((t (:inherit default :weight light))))
+   '(line-number-current-line ((t (:inherit default :weight light)))))
 #+end_src
 
 ** Rainbow Delimiters
+
 https://github.com/Fanael/rainbow-delimiters
 
 #+begin_src emacs-lisp
@@ -239,67 +301,79 @@ https://github.com/Fanael/rainbow-delimiters
     :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
-* Keyboard
+** Open with recent files
 
-#+begin_src emacs-lisp
-  (global-set-key "\M-l" (lambda () (interactive) (insert "@")))
-  (global-set-key "\M-5" (lambda () (interactive) (insert "[")))
-  (global-set-key "\M-6" (lambda () (interactive) (insert "]")))
-  (global-set-key "\M-7" (lambda () (interactive) (insert "|")))
-  (global-set-key "\M-/" (lambda () (interactive) (insert "\\")))
-  (global-set-key "\M-8" (lambda () (interactive) (insert "{")))
-  (global-set-key "\M-9" (lambda () (interactive) (insert "}")))
-  (global-set-key "\M-n" (lambda () (interactive) (insert "~")))
-#+end_src
-
-* LaTeX
-
-#+begin_src emacs-lisp
-  (setenv "PATH" (concat "/Library/TeX/texbin" ":" (getenv "PATH")))
+#+Begin_src emacs-lisp
+  (recentf-mode 1)
+  (when (file-exists-p (locate-user-emacs-file "recentf"))
+    (recentf-open-files))
 #+end_src
 
 * Org Mode
+
 ** General
+
 #+begin_src emacs-lisp
-    (defun oe/configure-org-mode ()
-      (variable-pitch-mode t)
-      (visual-line-mode t)
-      (setq org-return-follows-link t))
-    ;;(add-hook 'org-mode-hook 'variable-pitch-mode)
-    (add-hook 'org-mode-hook #'oe/configure-org-mode)
+  (defun oe/configure-org-mode ()
+    (require 'org-mouse)
+    (setq org-return-follows-link t)
+    (setq org-catch-invisible-edits 'error))
+
+  (add-hook 'org-mode-hook #'oe/configure-org-mode)
+  (add-hook 'org-mode-hook #'org-indent-mode)
 #+end_src
 
-*** Enable export to Markdown
+*** Font-Faces
+
+I took the scales from here [[https://typescale.com][typescale.com]]. Scale is `Major Second`.
 
 #+begin_src emacs-lisp
-  (eval-after-load "org"
-    '(require 'ox-md nil t))
+  (defun oe/setup-org-level-faces ()
+    (dolist (face '((org-level-1 . 1.424)
+                    (org-level-2 . 1.266)
+                    (org-level-3 . 1.125)
+                    (org-level-4 . 1.0)
+                    (org-level-5 . 0.889)))
+      (set-face-attribute (car face) nil
+                          :font "JetBrains Mono"
+                          :weight 'normal
+                          :height (truncate (* 130 (cdr face))))))
+
+  (add-hook 'org-mode-hook 'oe/setup-org-level-faces)
 #+end_src
 
-*** Nicer Bullet Lists
+*** Nicer Bullet Lists / org-superstar
 
 #+begin_src emacs-lisp
-  (use-package org-bullets
+  (use-package org-superstar
     :after org
-    :hook (org-mode . org-bullets-mode))
+    :init
+    (setq org-superstar-item-bullet-alist
+          '((?* . ?•)
+            (?+ . ?•)
+            (?- . ?•)))
+    :hook (org-mode . org-superstar-mode))
+
+  (setq org-superstar-leading-bullet " ")
 #+end_src
 
-*** Nicer Lists
+*** Configure Languages for SRC blocks
+
+**** ob-swift
 
 #+begin_src emacs-lisp
-  (font-lock-add-keywords 'org-mode
-			  '(("^ *\\([-]\\) "
-			     (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  (use-package ob-swift)
 #+end_src
-  
-*** Configure Babel Languages
-**** Setup PATH
+
+**** ob-swiftui
 
 #+begin_src emacs-lisp
-  (setenv "PATH" (concat "/opt/homebrew/bin" ":" (getenv "PATH")))
+  (use-package ob-swiftui
+    :config
+    (ob-swiftui-setup))
 #+end_src
 
-**** Configure Languages
+**** Load Languages
 
 #+begin_src emacs-lisp
   (with-eval-after-load 'org
@@ -312,19 +386,6 @@ https://github.com/Fanael/rainbow-delimiters
        (C . t))))
 #+end_src
 
-**** ob-swift
-
-#+begin_src emacs-lisp
-  (use-package ob-swift)
-#+end_src
-
-**** ob-swiftui
-
-#+begin_src emacs-lisp
-  (use-package ob-swiftui)
-  (ob-swiftui-setup)
-#+end_src
-
 *** Structure Templates
 
 #+begin_src emacs-lisp
@@ -333,237 +394,158 @@ https://github.com/Fanael/rainbow-delimiters
 
     (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
     (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-    (add-to-list 'org-structure-template-alist '("sw" . "src swift"))
-    (add-to-list 'org-structure-template-alist '("swui" . "src swiftui"))
+    (add-to-list 'org-structure-template-alist '("clang" . "src C :includes '(stdio.h) :flags -std=c90"))
     (add-to-list 'org-structure-template-alist '("cpp" . "src C++ :includes '(iostream) :flags -std=c++20"))
-    (add-to-list 'org-structure-template-alist '("clang" . "src C :includes '(stdio.h) :flags -std=c90")))
+    (add-to-list 'org-structure-template-alist '("sw" . "src swift"))
+    (add-to-list 'org-structure-template-alist '("swui" . "src swiftui")))
 #+end_src
 
-*** Auto-tangle Configuration files
+* Completion
+
+** corfu
+
+[[https://github.com/minad/corfu][COmpletion in Region FUnction]]
 
 #+begin_src emacs-lisp
-  ;; automatically tangle this file when saved
-  (defun oe/org-babel-tangle-config ()
-    (when (string-equal (file-name-directory (buffer-file-name))
-			(expand-file-name user-emacs-directory))
-      (let ((org-confirm-babel-evaluate nil))
-	(org-babel-tangle))))
-
-  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'oe/org-babel-tangle-config)))
-#+end_src
-
-** Todo System
-
-*** Shortcuts
-
-#+begin_src emacs-lisp
-  (define-key global-map (kbd "C-c a")
-	      (lambda () (interactive) (org-agenda nil)))
-
-  ;; open inbox
-  (define-key global-map (kbd "C-c i")
-	      (lambda () (interactive) (find-file "~/.org/agenda/inbox.org")))
-
-  ;; plan
-  (define-key global-map (kbd "C-c p")
-	      (lambda () (interactive) (find-file "~/.org/agenda/tasks.org")))
-#+end_src
-
-*** Agenda Files
-
-#+begin_src emacs-lisp
-  (setq org-agenda-files
-	'("~/.org/agenda/inbox.org"
-	  "~/.org/agenda/tasks.org"
-	  "~/.org/agenda/habits.org"))
-#+end_src
-
-*** Agenda Refile Targets
-
-#+begin_src emacs-lisp
-    (setq org-refile-targets
-	'((buffer-file-name :maxlevel . 1)
-	  ("tasks.org" :maxlevel . 1)
-	  ("habits.org" :maxlevel . 1)))
-#+end_src
-
-*** Todo Keywords
-
-#+begin_src emacs-lisp
-    (setq org-todo-keywords
-	  '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
-	    (sequence "WAIT(w@/!)" "|" "COMPLETED(c)" "CANC(k@)")))
-#+end_src
-
-*** Tags
-
-#+begin_src emacs-lisp
-  (setq org-tag-alist
-      '((:startgroup)
-	; mutually exclusive tags here
-	(:endgroup)
-	("SF" . ?s)
-	("POM" . ?p)))
-#+end_src
-
-*** Habits
-
-#+begin_src emacs-lisp
-  (require 'org-habit)
-  (add-to-list 'org-modules 'org-habit)
-  (setq org-habit-graph-column 60)
-#+end_src
-
-*** Agenda Custom Commands
-
-#+begin_src emacs-lisp
-  (setq org-agenda-custom-commands
-	'(("n" "Next Tasks"
-	   ((todo "NEXT"
-		  ((org-agenda-overriding-header "Next Tasks")))))))
-
-;;  ("A" "All items from Tasks"
-;;	   ((tags "-- * non existing * --"
-;;		  ((org-agenda-files '("~/.org/agenda/tasks.org"))
-;;		   (org-agenda-overriding-header "Blah Fahsel")))))
-;;
-#+end_src
-
-*** Automatically save after refiling
-
-#+begin_src emacs-lisp
-  (advice-add 'org-refile :after 'org-save-all-org-buffers)
-#+end_src
-
-*** Capture Templates
-
-#+begin_src emacs-lisp
-  (setq org-capture-templates
-	'(("t" "Tasks/Projects")
-	  ("tt" "Task" entry (file+olp "~/.org/agenda/inbox.org" "Inbox") "* %?\n %U\n %a\n %i" :empty-lines 1)))
-
-  (define-key global-map (kbd "C-c t")
-	      (lambda () (interactive) (org-capture nil "tt")))
-#+end_src
-
-** Org Roam
-
-#+begin_src emacs-lisp
-  (defvar oe/org-roam-directory "~/.org/roam")
-  (unless (file-directory-p oe/org-roam-directory)
-    (make-directory oe/org-roam-directory))
-
-  (use-package org-roam
-    :ensure t
-    :init
-    (setq org-roam-v2-ack t)
+  (use-package corfu
+    ;; Optional customizations
     :custom
-    (org-roam-directory oe/org-roam-directory)
-    (org-roam-completion-everywhere t)
-    (org-roam-graph-executable "/opt/homebrew/bin/dot")
-    :bind (("C-c n l" . org-roam-buffer-toggle)
-	   ("C-c n f" . org-roam-node-find)
-	   ("C-c n i" . org-roam-node-insert)
-	   :map org-mode-map
-	   ("C-M-i"    . completion-at-point))
+    ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+    (corfu-auto t)                 ;; Enable auto completion
+    ;; (corfu-separator ?\s)          ;; Orderless field separator
+    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+    ;; Enable Corfu only for certain modes.
+    ;; :hook ((prog-mode . corfu-mode)
+    ;;        (shell-mode . corfu-mode)
+    ;;        (eshell-mode . corfu-mode))
+
+    ;; Recommended: Enable Corfu globally.
+    ;; This is recommended since Dabbrev can be used globally (M-/).
+    ;; See also `corfu-exclude-modes'.
+    :init
+    (global-corfu-mode))
+#+end_src
+
+** cape
+
+[[https://github.com/minad/cape][Completion At Point Extensions]]
+
+#+begin_src emacs-lisp
+  (use-package cape
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-abbrev)
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    )
+#+end_src
+
+** vertico
+
+[[https://github.com/minad/vertico][VERTical Interactive Completion]]
+
+#+begin_src emacs-lisp
+  (use-package vertico
+    :init
+    (vertico-mode))
+#+end_src
+
+** orderless
+
+[[https://github.com/oantolin/orderless][orderless]]
+
+#+begin_src emacs-lisp
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles basic partial-completion)))))
+#+end_src
+
+** marginalia
+
+[[https://github.com/minad/marginalia][marginalia]]
+
+#+begin_src emacs-lisp
+  (use-package marginalia
+    :init
+    (marginalia-mode))
+#+end_src
+
+** which key
+
+[[https://github.com/justbur/emacs-which-key][which-key]]
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :defer 0
+    :diminish which-key-mode
     :config
-    (org-roam-setup))
-#+end_src
-
-The next block is required if we don't use ivy
-
-#+begin_src emacs-lisp
-  (define-key minibuffer-local-completion-map (kbd "SPC") 'self-insert-command)
-#+end_src
-
-** Jira
-
-#+begin_src emacs-lisp
-;;  (defvar oe/org-jira-directory "~/.org/jira")
-;;  (unless (file-directory-p oe/org-jira-directory)
-;;    (make-directory oe/org-jira-directory))
-;;
-;;  (use-package org-jira
-;;     :config
-;;     (setq jiralib-url "https://jira.starface.de")
-;;     (setq org-jira-working-dir oe/org-jira-directory))
-#+end_src
-
-* Terminal
-#+begin_src emacs-lisp
-  (use-package vterm
-  :commands vterm
-  :config
-  (setq vterm-max-scrollback 10000))
+    (which-key-mode)
+    (setq which-key-idle-delay 0.5))
 #+end_src
 
 * IDE-Features
-** lsp-mode
+
+** Shell Scripts
+:PROPERTIES:
+:ENABLES:  automatically check shell scripts via =shellcheck=
+:END:
 
 #+begin_src emacs-lisp
-  (defun oe/lsp-mode-setup()
-    (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
-    (lsp-headerline-breadcrumb-mode))
+  (defun oe/flymake-show-buffer-diagnostics ()
+    "Show the flymake buffer and focus on it."
+    (interactive)
+    (flymake-show-buffer-diagnostics)
+    (other-window 1))
 
-  (use-package lsp-mode
-    :commands (lsp lsd-deferred)
-    :hook (lsp-mode . oe/lsp-mode-setup)
+  (use-package flymake-shellcheck
+    :commands flymake-shellcheck-load
     :init
-    (setq lsp-keymap-prefix "C-c l")
-    :config
-    (lsp-enable-which-key-integration t))
+    (add-hook 'sh-mode-hook 'flymake-shellcheck-load)
+    (add-hook 'sh-mode-hook 'flymake-mode)
+    :bind ("<f6>" . oe/flymake-show-buffer-diagnostics))
 #+end_src
 
-** lsp-ui
+** CMake
 
 #+begin_src emacs-lisp
-  (use-package lsp-ui
-    :hook (lsp-mode . lsp-ui-mode))
-  ;;    :custom
-  ;;    (lsp-ui-doc-use-webkit -1))
-  ;;	(lsp-ui-doc-position 'bottom)
-  ;;	(lsp-ui-doc-show-with-cursor t))
+  (use-package cmake-mode)
+  (setq auto-mode-alist
+        (append
+         '(("CMakeLists\\.txt\\'" . cmake-mode))
+         '(("\\.cmake\\'" . cmake-mode))
+         auto-mode-alist))
 #+end_src
 
-** lsp-sourcekit
+** lsp
+
+[[https://emacs-lsp.github.io/lsp-mode/][Language Server Protocol Support for Emacs]]
 
 #+begin_src emacs-lisp
-  (use-package lsp-sourcekit
-    :after lsp-mode
-    :config
-    (setq lsp-sourcekit-executable (string-trim (shell-command-to-string "xcrun --find sourcekit-lsp"))))
+  (use-package lsp-mode)
+  ;; (use-package lsp-mode
+  ;;   :custom
+  ;;   (lsp-completion-provider :none)
+  ;;   )
 #+end_src
 
-** swift-mode
+** Tree-Sitter
+
+[[https://emacs-tree-sitter.github.io][Emacs Tree Sitter]]
 
 #+begin_src emacs-lisp
-  (use-package swift-mode
-    :hook (swift-mode . lsp-deferred))
+  (use-package tree-sitter)
+  (use-package tree-sitter-langs)
 #+end_src
 
-** Company Mode
-
-#+begin_src emacs-lisp
-  (use-package company
-    :after lsp-mode
-    :hook (lsp-mode . company-mode)
-    :bind (:map company-active-map
-		  ("<tab>" . company-complete-selection))
-    (:map lsp-mode-map
-	    ("<tab>" . company-indent-or-complete-common))
-    :custom
-    (company-minimum-prefix-length 1)
-    (company-idle-delay 0.0))
-
-    (use-package company-box
-      :hook (company-mode . company-box-mode))
-#+end_src
-
-** dap-mode
-
-#+begin_src emacs-lisp
-;;  (use-package dap-mode
-;;    :config
-;;    (require 'dap-lldb))
-#+end_src
+* Disabled
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle no
+:END:
 
