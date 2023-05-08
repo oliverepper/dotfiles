@@ -1,26 +1,23 @@
-#-*- mode: org -*-
+# -*- mode: org -*-
 #+author: Oliver Epper <oliver.epper@gmail.com>
 #+property: header-args:emacs-lisp :tangle ~/.config/emacs/init.el :mkdirp yes
 #+STARTUP: overview
 
-* Intro
+* Start
 :PROPERTIES:
-:VISIBILITY: all
+:VISIBILITY: children
 :END:
 
 This is the literate programming version of my Emacs config. Blocks are tangled into XDG compatible config files in [[~/.config/emacs/init.el][init.el]]. See [[#auto_tangle][Auto-tangle]].
 
-** Features
+** Emacs Installation
 
-- a comment in [[~/.config/emacs/init.el][init.el]] hinting that the file is generated
-- automatically tangle this file into ~init.el~
+#+begin_src shell
+  brew tap railwaycat/emacsmacport
+  brew install --cask emacs-mac
+#+end_src
 
-*** TODO add the missing parts
-- would be cool to generate a list of features collected from the =ENABLES= property.
-
-* Basic Config
-
-** Generate ~init.el~ Header
+* Generate ~init.el~ Header
 
 #+NAME: filename
 #+begin_src emacs-lisp :tangle no :eval (setq org-confirm-babel-evaluate nil) :results values
@@ -38,23 +35,62 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   ;; <<version_info()>>
 #+end_src
 
-** Custom Variables
+** Start Message
 
 #+begin_src emacs-lisp
-  (setq custom-file (locate-user-emacs-file "custom-vars.el"))
-  (load custom-file 'noerror 'nomessage)
+(message "Loading %s" (or load-file-name buffer-file-name))
 #+end_src
 
-** Packages
+* Basic Setup
 
-Sets up packages sources, refreshes and installs ~use-package~. Configures ~use-package~ to automatically install missing but required packages.
+** gc-cons-threshold
+
+#+begin_src emacs-lisp
+  (setq gc-cons-threshold (* 50 1000 1000))
+#+end_src
+
+** Custom file (never loaded)
+#+begin_src emacs-lisp
+  (setq custom-file (locate-user-emacs-file "custom.el"))
+#+end_src
+
+** Font & Line-Spacing
+
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font "JetBrains Mono:size=14")
+  (set-face-attribute 'fixed-pitch nil :font (face-attribute 'default :font))
+  (setq-default line-spacing 0.25)
+#+end_src
+
+** Window Layout
+
+#+begin_src emacs-lisp
+  (require 'cl-lib)
+  (dolist (elem
+	   '(
+	     (width			.	0.9)
+	     (height			.	0.95)
+
+	     (user-position		.	t)
+	     (left			.	0.5)
+	     (top			.	0.5)
+
+	     (ns-transparent-titlebar	.	t)
+
+	     (left-fringe		.	16)
+	     (right-fringe		.	16)
+	     ))
+    (cl-pushnew elem default-frame-alist))
+
+  (tool-bar-mode	-1)
+  (scroll-bar-mode	-1)
+#+end_src
+
+** package & use-package
 
 #+begin_src emacs-lisp
   (require 'package)
-
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/")))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
   (package-initialize)
   (unless package-archive-contents
@@ -63,11 +99,363 @@ Sets up packages sources, refreshes and installs ~use-package~. Configures ~use-
   (unless (package-installed-p 'use-package)
     (package-install 'use-package))
 
-  (require 'use-package)
-  (setq use-package-always-ensure t) ;; install missing packages automatically
+  (require 'use-package)		
+  (setq use-package-always-ensure t)
 #+end_src
 
-** Auto-tangle
+* Modus Themes
+
+** Setup
+
+#+begin_src emacs-lisp
+  (defun oe/save-selected-theme (theme)
+    (with-temp-file (expand-file-name "selected-theme.el" user-emacs-directory)
+      (insert (format "(load-theme '%s :no-confirm)\n" theme))))
+
+  (use-package modus-themes
+    :demand
+    :custom
+    (modus-themes-to-toggle		'(modus-operandi modus-vivendi))
+    (modus-themes-disable-other-themes	t)
+
+    (modus-themes-italic-constructs	t)
+    (modus-themes-variable-pitch-ui	t)
+    (modus-themes-mixed-fonts		t)
+
+    (modus-themes-prompts		'(bold))
+    (modus-themes-org-blocks		'tinted-background)
+
+    (modus-themes-headings
+     '(
+       (1			. (1.215))
+       (2			. (1.138))
+       (3			. (1.076))
+       (4			. (1.0))
+       (5			. (0.937))
+
+       (agenda-date		. (variable-pitch italic 1.138))
+       (agenda-structure	. (variable-pitch light 1.215))
+       (t			. (medium))
+       ))
+
+    (modus-themes-common-palette-overrides
+     '(
+       (border-mode-line-active		bg-mode-line-active)
+       (border-mode-line-inactive	bg-mode-line-inactive)
+       ))
+    :bind ("<f5>" . (lambda ()
+		      (interactive)
+		      (oe/save-selected-theme (modus-themes-toggle))))
+    :config
+    (let ((last (expand-file-name "selected-theme.el" user-emacs-directory)))
+      (if (file-exists-p last)
+	  (load last)
+	(load-theme (car modus-themes-to-toggle) :no-confirm))))
+#+end_src
+
+** Cycle through all Modus-Themes
+
+#+begin_src emacs-lisp
+  (defun oe/rotate-list (list)
+    (when list
+      (append (cdr list) (list (car list)))))
+
+  (defun oe/cycle-themes (theme-list)
+    (load-theme (car theme-list) :no-confirm)
+    (oe/rotate-list theme-list))
+
+  (defun oe/cycle-themes-and-print-log-msg ()
+    (interactive)
+    (defvar modus-themes--cycle modus-themes-items)
+    (setq modus-themes--cycle (oe/cycle-themes modus-themes--cycle))
+    (let ((selected-theme (car (reverse modus-themes--cycle))))
+      (message "Theme: %s selected" selected-theme)
+      (oe/save-selected-theme selected-theme)))
+
+  (global-set-key (kbd "<f4>") #'oe/cycle-themes-and-print-log-msg)
+#+end_src
+
+* Do Things Only When on macOS
+
+** Start Condition – macOS
+#+begin_src emacs-lisp
+  (when (memq window-system '(mac ns))
+#+end_src
+
+** Use gls instead of ls in dired
+
+#+begin_src emacs-lisp
+  (if (executable-find "gls")
+      (setq insert-directory-program "gls")
+    (message "Please install GNU coreutils via `brew install coreutils`"))
+#+end_src
+
+** Move Files to Trash
+
+#+begin_src emacs-lisp
+  (setq delete-by-moving-to-trash			t)
+  (setq mac-system-move-file-to-trash-use-finder	t)
+#+end_src
+
+** Reveal in Finder
+
+[[https://github.com/kaz-yos/reveal-in-osx-finder][reveal-in-osx-finder]]
+
+#+begin_src emacs-lisp
+  (use-package reveal-in-osx-finder
+    :commands reveal-in-osx-finder 
+    :bind ("C-c f" . reveal-in-osx-finder))
+#+end_src
+
+** End Condition - macOS
+#+begin_src emacs-lisp
+  )
+#+end_src
+
+* delight
+
+[[https://elpa.gnu.org/packages/delight.html][delight]]
+
+#+begin_src emacs-lisp
+  (use-package delight
+    :demand)
+#+end_src
+
+* windmove
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "A-<left>") #'windmove-left)
+  (global-set-key (kbd "A-<up>") #'windmove-up)
+  (global-set-key (kbd "A-<right>") #'windmove-right)
+  (global-set-key (kbd "A-<down>") #'windmove-down)
+#+end_src
+
+* visual-line-mode
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :config
+    (global-visual-line-mode t))
+#+end_src
+
+* global-auto-revert-mode
+
+Automatically revert buffers when file changes on disk.
+
+#+begin_src emacs-lisp
+  (global-auto-revert-mode t)
+#+end_src
+
+* calendar-week-day-start
+
+#+begin_src emacs-lisp
+  (setq calendar-week-start-day 1)
+#+end_src
+
+* Additional Key Bindings
+
+Some more are implemented where needed, use isearch to see them all.
+
+* recentf-mode
+
+#+begin_src emacs-lisp
+  (use-package emacs
+  :custom
+  (recentf-exclude '(".excluded"))
+  (recentf-max-menu-items 10)
+  (recentf-max-saved-items 10)
+  :config
+  (recentf-mode t)
+  :bind ("C-c r" . #'recentf-open-files))
+#+end_src
+
+* dumb-jump
+
+[[https://github.com/jacktasia/dumb-jump][dumb-jump]]
+
+#+begin_src emacs-lisp
+  (use-package dumb-jump
+    :commands dumb-jump-xref-activate
+    :init
+    (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+#+end_src
+
+* which-key
+
+[[https://github.com/justbur/emacs-which-key][which-key]]
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :demand
+    :custom
+    (which-key-idle-delay 0.3)
+    :delight
+    :config
+    (which-key-mode)
+    )
+#+end_src
+
+* display-line-numbers
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :custom
+    (display-line-numbers-type	'visual)
+    (display-line-numbers-width	3)
+    :hook
+    ((org-mode prog-mode). display-line-numbers-mode)
+    )
+#+end_src
+
+* rainbow-delimiters
+
+[[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters]]
+
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+* adaptive wrap
+
+[[https://elpa.gnu.org/packages/adaptive-wrap.html][adaptive-wrap]]
+
+#+begin_src emacs-lisp
+  (use-package adaptive-wrap
+    :custom
+    (adaptive-wrap-extra-indent 3)
+    :hook (text-mode . adaptive-wrap-prefix-mode))
+#+end_src
+
+* docker-compose-mode
+
+#+begin_src emacs-lisp
+  (use-package docker-compose-mode)
+#+end_src
+
+* flymake-shellcheck
+
+[[https://github.com/federicotdn/flymake-shellcheck.git][flymake-shellcheck]]
+
+#+begin_src emacs-lisp
+  (use-package flymake-shellcheck
+    :commands flymake-shellcheck-load
+    :hook
+    (sh-mode . flymake-shellcheck-load)
+    (sh-mode . flymake-mode)
+    )
+#+end_src
+
+* vertico
+
+[[https://github.com/minad/vertico][vertico]]
+
+#+begin_src emacs-lisp
+  (use-package vertico
+    :init
+    (vertico-mode))
+#+end_src
+
+* marginalia-mode
+
+#+begin_src emacs-lisp
+  (use-package marginalia
+    :bind (:map minibuffer-local-map
+		("M-A" . marginalia-cycle))
+    :init
+    (marginalia-mode))
+#+end_src
+
+* orderless
+
+[[https://github.com/oantolin/orderless][orderless]]
+
+#+begin_src emacs-lisp
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides
+     '(
+       (file (styles basic partial-completion))
+       )))
+#+end_src
+
+* Google Chrome
+
+** allow --incognito mode
+
+#+begin_src emacs-lisp
+  (dolist (elem
+	   '(
+	     (browse-url-browser-function . browse-url-generic)
+	     (browse-url-generic-program . "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+	     (browse-url-generic-args . ("--incognito"))
+	     ))
+    (cl-pushnew elem safe-local-variable-values))
+#+end_src
+
+* Org Mode
+
+** Setup
+
+#+begin_src emacs-lisp
+  (use-package org
+    :custom 
+    (org-return-follows-link	t)
+    :commands (org-mode org-agenda)
+    :config
+    (progn
+      (require 'org-mouse))
+    )
+#+end_src
+
+** Configure Languages for SRC blocks
+
+*** ob-swift
+
+#+begin_src emacs-lisp
+  (use-package ob-swift)
+#+end_src
+
+*** ob-swiftui
+
+#+begin_src emacs-lisp
+  (use-package ob-swiftui)
+#+end_src
+
+*** Load Languages
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '(
+       (emacs-lisp	. t)
+       (shell		. t)
+       (swift		. t)
+       (swiftui		. t)
+       (C		. t)
+       (python		. t)
+       )))
+#+end_src
+
+** Structure Templates
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (require 'org-tempo)
+
+    (add-to-list 'org-structure-template-alist '("el"		.	"src emacs-lisp"))
+    (add-to-list 'org-structure-template-alist '("sh"		.	"src shell"))
+    (add-to-list 'org-structure-template-alist '("clang"	.	"src C :includes '(stdio.h) :flags -std=c90"))
+    (add-to-list 'org-structure-template-alist '("cpp"		.	"src C++ :includes '(iostream) :flags -std=c++20"))
+    (add-to-list 'org-structure-template-alist '("sw"		.	"src swift"))
+    (add-to-list 'org-structure-template-alist '("swui"		.	"src swiftui"))
+    (add-to-list 'org-structure-template-alist '("py"		.	"src python"))
+    )
+#+end_src
+
+** Auto Tangle
 :PROPERTIES:
 :CUSTOM_ID: auto_tangle
 :END:
@@ -83,469 +471,132 @@ Sets up packages sources, refreshes and installs ~use-package~. Configures ~use-
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'oe/org-babel-tangle-config)))
 #+end_src
 
-** Key Bindings
+** roam
 
 #+begin_src emacs-lisp
-  (defun oe/open-new-line ()
-    (interactive)
-    (end-of-line)    
-    (newline)
-    (indent-according-to-mode))
+  ;; create roam directory if missing
+  (defconst oe/org-roam-directory "~/org/roam")
+  (unless (file-directory-p oe/org-roam-directory)
+    (make-directory oe/org-roam-directory t))
 
-  (global-set-key (kbd "C-c r") #'recentf-open-files)
-  (global-set-key (kbd "C-c c") #'oe/frame-recenter)
-  (global-set-key (kbd "<f4>") #'oe/cycle-themes-and-print-log-msg)
-  (global-set-key (kbd "C-c o") #'oe/open-new-line)
-#+end_src
-
-** Editing
-
-*** Audio Bell
-
-#+begin_src emacs-lisp
-  (setq ring-bell-function 'ignore)
-#+end_src
-
-*** Move Text
-
-Move text with M-up, or M-down
-
-#+begin_src emacs-lisp
-  (use-package move-text
-    ;; :config
-    ;; (move-text-default-bindings)
+  (use-package org-roam
+    :custom
+    (org-roam-directory oe/org-roam-directory)
+    (org-roam-node-display-template
+     (concat
+      "${title:*}" (propertize "${tags:25}" 'face 'org-tag)
+      ))
     :bind
-    ("C-c <up>" . move-text-up)
-    ("C-c <down>" . move-text-down)
-    )
-#+end_src
-
-*** Automatically revert buffers
-
-Automatically revert buffers when file changes on disk
-
-#+begin_src emacs-lisp
-  (global-auto-revert-mode 1)
-#+end_src
-
-** File Settings
-
-*** Trash / Recycle Bin Settings
-
-#+begin_src emacs-lisp
-  (when (memq window-system '(mac ns))
-    (defun system-move-file-to-trash (path)
-      "Moves file at PATH to the macOS Trash accorsing to 'move-file-to-trash' convention. Relies on the command-line utility 'trash' to be installed."
-      (shell-command (concat "trash -v \"" path "\""
-                             "| sed -e 's/^/Tashed: /'")
-                     nil ;; name of output buffer
-                     "*Trash Error Buffer*")))
-
-  (setq trash-directory "~/.Trash") ;; fallback for 'move-file-to-trash'
-  (setq delete-by-moving-to-trash t)
-#+end_src
-
-*** Reveal in OSX Finder
-
-#+begin_src emacs-lisp
-  (use-package reveal-in-osx-finder
-    :bind ("C-c f" . #'reveal-in-osx-finder))
-#+end_src
-
-* UI
-
-** Window Config
-
-#+begin_src emacs-lisp
-  (setq inhibit-startup-message t)
-  (setq inhibit-startup-echo-area-message "oliver") ;; enter your username
-
-  (tool-bar-mode -1)
-
-  (setq default-frame-alist
-        '(
-          (user-position . t)
-          (top . 0.5)
-          (left . 0.5)
-          (width . 160)
-          (height . 45)
-          (vertical-scroll-bars . nil)
-          ;; add some breathing room
-          ;; (left-fringe . 20)
-          ;; (right-fringe . 20)
-          ))
-
-  (defun oe/frame-recenter (&optional frame)
-    "Center FRAME on the screen.
-  FRAME can be a frame name, a terminal name, or a frame.
-  If FRAME is omitted or nil, the current frame is used."
-    (interactive)
-    (unless (eq 'maximised (frame-parameter frame 'fullscreen))
-      (modify-frame-parameters
-       frame '(
-               (user-position . t)
-               (top . 0.5)
-               (left . 0.5)
-               ))))
-
-  (defun oe/frame-restore-main-frame ()
-    (interactive)
-    (modify-frame-parameters nil default-frame-alist))
-#+end_src
-
-** Theme
-
-*** Modus Themes
-
-#+begin_src emacs-lisp
-  (use-package modus-themes
+    (
+     ("C-c n f" . org-roam-node-find)
+     ("C-c n i" . org-roam-node-insert)
+     )
+    :bind-keymap
+    ("C-c n d" . org-roam-dailies-map)
     :config
-    (setq modus-themes-disable-other-themes t)
-    ;; overrides
-    ;; (setq modus-themes-common-palette-overrides
-    ;;   '(
-    ;;     (border-mode-line-active bg-mode-line-active)
-    ;;     (border-mode-line-inactive bg-mode-line-inactive)
-    ;;     (bg-region "mac:selectedTextBackgroundColor")
-    ;;     (fg-region "mac:selectedTextColor"))
-    ;;   )
-
-    :init
-    (setq modus-themes-to-toggle '(modus-operandi-tinted modus-vivendi-tinted))
-
-    (defun oe/modus-themes-init ()
-      ;; cadr because I want to start with vivendi
-      (load-theme (cadr modus-themes-to-toggle) :no-confirm)
-      (defvar modus-themes--cycle-themes modus-themes-items))
-
-    :bind ("<f5>" . modus-themes-toggle)
-    :hook (after-init . oe/modus-themes-init))
+    (require 'org-roam-dailies)
+    (org-roam-setup))
 #+end_src
 
-*** Shuffle Themes
+** agenda
 
 #+begin_src emacs-lisp
-  ;; helper function
-  (defun oe/org-mode-restart-when-enabled ()
-    "Restarts org-mode then it is active in the current buffer."
-    (when (fboundp 'org-mode)
-      (when (eq major-mode 'org-mode)
-        (org-mode-restart))))
+  (defconst oe/org-agenda-directory "~/org/agenda")
+  (unless (file-directory-p oe/org-agenda-directory)
+    (make-directory oe/org-agenda-directory t))
 
-  ;; cycle through themes
-  (defun oe/rotate-list (list)
-    (when list
-      (append (cdr list) (list (car list)))))
+  (defconst oe/org-agenda-tasks-file
+    (expand-file-name "Aufgaben.org"
+		      oe/org-agenda-directory))
 
-  (defun oe/cycle-themes (theme-list)
-    (load-theme (car theme-list) :no-confirm)
-    (oe/org-mode-restart-when-enabled)
-    (oe/rotate-list theme-list))
+  (defconst oe/org-agenda-appointments-file
+    (expand-file-name "Termine.org"
+		      oe/org-agenda-directory))
 
-  (defun oe/cycle-themes-and-print-log-msg ()
-    (interactive)
-    (setq modus-themes--cycle-themes (oe/cycle-themes modus-themes--cycle-themes))
-    (message "Theme: %s selected" (car (reverse modus-themes--cycle-themes))))
+  (setq org-agenda-files
+	(list
+	 oe/org-agenda-tasks-file
+	 oe/org-agenda-appointments-file
+	 ))
+
+  ;; create files if necessary
+  (mapcar (lambda (filename)
+	    (unless (file-exists-p filename)
+	      (write-region "" nil filename nil nil nil 'excl)
+	      (when (equal filename oe/org-agenda-tasks-file)
+		(with-temp-buffer
+		  (insert "* Inbox\n")
+		  (append-to-file (point-min) (point-max) filename)))))
+	  org-agenda-files)
+
+  (global-set-key (kbd "C-c a") #'org-agenda)
 #+end_src
 
-*** advice modus-theme-toggle with org-mode-restart
+*** Capture Templates
 
 #+begin_src emacs-lisp
-  (advice-add 'modus-themes-toggle :after #'oe/org-mode-restart-when-enabled)
+  (setq org-capture-templates
+	'(
+	  ("a" "Aufgabe" entry (file+olp oe/org-agenda-tasks-file "Inbox")
+	   "* %?\n %U\n %a\n %i" :empty-lines 1)
+	  ("t" "Termin" entry (file oe/org-agenda-appointments-file)
+	   "* %^{prompt}\n %^t\n %i" :empty-lines 1)
+	  )
+	)
 #+end_src
 
-** Fonts
+*** Refile Targets
 
 #+begin_src emacs-lisp
-  (set-frame-font "JetBrains Mono-13" nil t)
+  (setq org-refile-targets
+	`(
+	  (buffer-file-name :maxlevel . 1)
+	  (,(file-name-nondirectory oe/org-agenda-tasks-file) :maxlevel . 2)
+	  (,(file-name-nondirectory oe/org-agenda-appointments-file) :maxlevel . 2)
+	  ))
 #+end_src
 
-** Readability
-
-*** Line-Spacing
+*** Tags
 
 #+begin_src emacs-lisp
-  (setq-default line-spacing 0.2)
+  (setq org-tag-alist
+	'(
+	  (:startgroup)
+	  ;; mutually exclusive tags go here
+	  ("Arbeit" . ?a)
+	  ("Privat" . ?p)
+	  (:endgroup)
+	  ))
 #+end_src
 
-*** Adaptive-Wrap
+* Generate ~init.el~ Footer
+
+** Done Message
 
 #+begin_src emacs-lisp
-  (use-package adaptive-wrap)
-
-  (defun oe/enable-indent-for-wrapped-lines ()
-    (visual-line-mode 1)
-    (adaptive-wrap-prefix-mode 1)
-    (setq-default adaptive-wrap-extra-indent 6))
-
-  (add-hook 'text-mode-hook 'oe/enable-indent-for-wrapped-lines)
-#+end_src
-
-** Line Numbers
-
-#+begin_src emacs-lisp
-  (setq-default display-line-numbers 'visual)
-  (setq-default display-line-numbers-width 3)
-
-  (custom-set-faces
-   '(line-number ((t (:inherit default :weight light))))
-   '(line-number-current-line ((t (:inherit default :weight light)))))
-#+end_src
-
-** Rainbow Delimiters
-
-https://github.com/Fanael/rainbow-delimiters
-
-#+begin_src emacs-lisp
-  (use-package rainbow-delimiters
-    :hook (prog-mode . rainbow-delimiters-mode))
-#+end_src
-
-** Open with recent files
-
-#+Begin_src emacs-lisp
-  (recentf-mode 1)
-  (when (file-exists-p (locate-user-emacs-file "recentf"))
-    (recentf-open-files))
-#+end_src
-
-* Org Mode
-
-** General
-
-#+begin_src emacs-lisp
-  (defun oe/configure-org-mode ()
-    (require 'org-mouse)
-    (setq org-return-follows-link t)
-    (setq org-catch-invisible-edits 'error))
-
-  (add-hook 'org-mode-hook #'oe/configure-org-mode)
-  (add-hook 'org-mode-hook #'org-indent-mode)
-#+end_src
-
-*** Font-Faces
-
-I took the scales from here [[https://typescale.com][typescale.com]]. Scale is `Major Second`.
-
-#+begin_src emacs-lisp
-  (defun oe/setup-org-level-faces ()
-    (dolist (face '((org-level-1 . 1.424)
-                    (org-level-2 . 1.266)
-                    (org-level-3 . 1.125)
-                    (org-level-4 . 1.0)
-                    (org-level-5 . 0.889)))
-      (set-face-attribute (car face) nil
-                          :font "JetBrains Mono"
-                          :weight 'normal
-                          :height (truncate (* 130 (cdr face))))))
-
-  (add-hook 'org-mode-hook 'oe/setup-org-level-faces)
-#+end_src
-
-*** Nicer Bullet Lists / org-superstar
-
-#+begin_src emacs-lisp
-  (use-package org-superstar
-    :after org
-    :init
-    (setq org-superstar-item-bullet-alist
-          '((?* . ?•)
-            (?+ . ?•)
-            (?- . ?•)))
-    :hook (org-mode . org-superstar-mode))
-
-  (setq org-superstar-leading-bullet " ")
-#+end_src
-
-*** Configure Languages for SRC blocks
-
-**** ob-swift
-
-#+begin_src emacs-lisp
-  (use-package ob-swift)
-#+end_src
-
-**** ob-swiftui
-
-#+begin_src emacs-lisp
-  (use-package ob-swiftui
-    :config
-    (ob-swiftui-setup))
-#+end_src
-
-**** Load Languages
-
-#+begin_src emacs-lisp
-  (with-eval-after-load 'org
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp . t)
-       (shell . t)
-       (swift . t)
-       (swiftui . t)
-       (C . t))))
-#+end_src
-
-*** Structure Templates
-
-#+begin_src emacs-lisp
-  (with-eval-after-load 'org
-    (require 'org-tempo)
-
-    (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-    (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-    (add-to-list 'org-structure-template-alist '("clang" . "src C :includes '(stdio.h) :flags -std=c90"))
-    (add-to-list 'org-structure-template-alist '("cpp" . "src C++ :includes '(iostream) :flags -std=c++20"))
-    (add-to-list 'org-structure-template-alist '("sw" . "src swift"))
-    (add-to-list 'org-structure-template-alist '("swui" . "src swiftui")))
-#+end_src
-
-* Completion
-
-** corfu
-
-[[https://github.com/minad/corfu][COmpletion in Region FUnction]]
-
-#+begin_src emacs-lisp
-  (use-package corfu
-    ;; Optional customizations
-    :custom
-    ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-    (corfu-auto t)                 ;; Enable auto completion
-    ;; (corfu-separator ?\s)          ;; Orderless field separator
-    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-
-    ;; Enable Corfu only for certain modes.
-    ;; :hook ((prog-mode . corfu-mode)
-    ;;        (shell-mode . corfu-mode)
-    ;;        (eshell-mode . corfu-mode))
-
-    ;; Recommended: Enable Corfu globally.
-    ;; This is recommended since Dabbrev can be used globally (M-/).
-    ;; See also `corfu-exclude-modes'.
-    :init
-    (global-corfu-mode))
-#+end_src
-
-** cape
-
-[[https://github.com/minad/cape][Completion At Point Extensions]]
-
-#+begin_src emacs-lisp
-  (use-package cape
-    :init
-    (add-to-list 'completion-at-point-functions #'cape-abbrev)
-    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    )
-#+end_src
-
-** vertico
-
-[[https://github.com/minad/vertico][VERTical Interactive Completion]]
-
-#+begin_src emacs-lisp
-  (use-package vertico
-    :init
-    (vertico-mode))
-#+end_src
-
-** orderless
-
-[[https://github.com/oantolin/orderless][orderless]]
-
-#+begin_src emacs-lisp
-  (use-package orderless
-    :custom
-    (completion-styles '(orderless basic))
-    (completion-category-overrides '((file (styles basic partial-completion)))))
-#+end_src
-
-** marginalia
-
-[[https://github.com/minad/marginalia][marginalia]]
-
-#+begin_src emacs-lisp
-  (use-package marginalia
-    :init
-    (marginalia-mode))
-#+end_src
-
-** which key
-
-[[https://github.com/justbur/emacs-which-key][which-key]]
-
-#+begin_src emacs-lisp
-  (use-package which-key
-    :defer 0
-    :diminish which-key-mode
-    :config
-    (which-key-mode)
-    (setq which-key-idle-delay 0.5))
-#+end_src
-
-* IDE-Features
-
-** Shell Scripts
-:PROPERTIES:
-:ENABLES:  automatically check shell scripts via =shellcheck=
-:END:
-
-#+begin_src emacs-lisp
-  (defun oe/flymake-show-buffer-diagnostics ()
-    "Show the flymake buffer and focus on it."
-    (interactive)
-    (flymake-show-buffer-diagnostics)
-    (other-window 1))
-
-  (use-package flymake-shellcheck
-    :commands flymake-shellcheck-load
-    :init
-    (add-hook 'sh-mode-hook 'flymake-shellcheck-load)
-    (add-hook 'sh-mode-hook 'flymake-mode)
-    :bind ("<f6>" . oe/flymake-show-buffer-diagnostics))
-#+end_src
-
-** CMake
-
-#+begin_src emacs-lisp
-  (use-package cmake-mode)
-  (setq auto-mode-alist
-        (append
-         '(("CMakeLists\\.txt\\'" . cmake-mode))
-         '(("\\.cmake\\'" . cmake-mode))
-         auto-mode-alist))
-#+end_src
-
-** lsp
-
-[[https://emacs-lsp.github.io/lsp-mode/][Language Server Protocol Support for Emacs]]
-
-#+begin_src emacs-lisp
-  (use-package lsp-mode)
-  ;; (use-package lsp-mode
-  ;;   :custom
-  ;;   (lsp-completion-provider :none)
-  ;;   )
-#+end_src
-
-** Tree-Sitter
-
-[[https://emacs-tree-sitter.github.io][Emacs Tree Sitter]]
-
-#+begin_src emacs-lisp
-  (use-package tree-sitter)
-  (use-package tree-sitter-langs)
+  (message "Done loading: %s" (or load-file-name buffer-file-name))
+
+  (defun oe/startup-message ()
+      (message "Emacs loaded in %s with %d garbage collections."
+	       (format "%.2f seconds"
+		       (float-time
+			(time-subtract after-init-time before-init-time)))
+	       gcs-done))
+  
+  (add-hook 'emacs-startup-hook #'oe/startup-message)
 #+end_src
 
 * Disabled
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle no
 :END:
+** vterm
+
+[[https://github.com/akermu/emacs-libvterm/][vterm]]
+
+#+begin_src emacs-lisp
+  (use-package vterm
+    :custom
+    (vterm-max-scrollback 10000))
+#+end_src
 
