@@ -59,7 +59,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
 #+begin_src emacs-lisp
   (set-face-attribute 'default nil :font "JetBrains Mono:size=14")
   (set-face-attribute 'fixed-pitch nil :font (face-attribute 'default :font))
-  (setq-default line-spacing 0.25)
+  (setq-default line-spacing 0.3)
 #+end_src
 
 ** Window Layout
@@ -77,6 +77,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
 
 	     (ns-transparent-titlebar	.	t)
 
+	     (internal-border-width	.	8)
 	     (left-fringe		.	16)
 	     (right-fringe		.	16)
 	     ))
@@ -228,6 +229,14 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   (global-set-key (kbd "A-<up>") #'windmove-up)
   (global-set-key (kbd "A-<right>") #'windmove-right)
   (global-set-key (kbd "A-<down>") #'windmove-down)
+#+end_src
+
+* tab-bar
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :custom
+    (tab-bar-new-tab-choice "*scratch*"))
 #+end_src
 
 * visual-line-mode
@@ -518,6 +527,10 @@ Some more are implemented where needed, use isearch to see them all.
 	 oe/org-agenda-tasks-file
 	 oe/org-agenda-appointments-file
 	 ))
+
+  ;; don't bother me too much. I have a condition
+  (setq org-agenda-skip-scheduled-if-deadline-is-shown t)
+  (setq org-agenda-skip-scheduled-if-done t)
 
   ;; create files if necessary
   (mapcar (lambda (filename)
