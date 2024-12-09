@@ -1,9 +1,9 @@
-# -*- mode: org -*-
+# -*- mode: org; olivetti-body-width: 120 -*-
 #+author: Oliver Epper <oliver.epper@gmail.com>
 #+property: header-args:emacs-lisp :tangle ~/.config/emacs/init.el :mkdirp yes
 #+STARTUP: overview
 
-* Start
+* DONE Start
 :PROPERTIES:
 :VISIBILITY: children
 :END:
@@ -17,7 +17,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   brew install --cask emacs-mac
 #+end_src
 
-* Generate ~init.el~ Header
+* DONE Generate ~init.el~ Header
 
 #+NAME: filename
 #+begin_src emacs-lisp :tangle no :eval (setq org-confirm-babel-evaluate nil) :results values
@@ -41,20 +41,27 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
 (message "Loading %s" (or load-file-name buffer-file-name))
 #+end_src
 
-* Basic Setup
+* DONE Basic Setup
 
-** gc-cons-threshold
+** DONE keyboard
+#+begin_src emacs-lisp
+  (setq mac-command-modifier 'meta
+        mac-option-modifier 'none
+        default-input-method "MacOSX")
+#+end_src
+
+** DONE gc-cons-threshold
 
 #+begin_src emacs-lisp
   (setq gc-cons-threshold (* 50 1000 1000))
 #+end_src
 
-** Custom file (never loaded)
+** DONE Custom file (never loaded)
 #+begin_src emacs-lisp
   (setq custom-file (locate-user-emacs-file "custom.el"))
 #+end_src
 
-** Font & Line-Spacing
+** DONE Font & Line-Spacing
 
 #+begin_src emacs-lisp
   (set-face-attribute 'default nil :font "JetBrains Mono:size=14")
@@ -62,13 +69,13 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   (setq-default line-spacing 0.3)
 #+end_src
 
-** Window Layout
+** DONE Window Layout
 
 #+begin_src emacs-lisp
   (require 'cl-lib)
   (dolist (elem
 	   '(
-	     (width			.	0.9)
+	     (width			.	0.6)
 	     (height			.	0.95)
 
 	     (user-position		.	t)
@@ -87,7 +94,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   (scroll-bar-mode	-1)
 #+end_src
 
-** package & use-package
+** DONE package & use-package
 
 #+begin_src emacs-lisp
   (require 'package)
@@ -104,7 +111,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   (setq use-package-always-ensure t)
 #+end_src
 
-* Modus Themes
+* DONE Modus Themes
 
 ** Setup
 
@@ -176,14 +183,14 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
   (global-set-key (kbd "<f4>") #'oe/cycle-themes-and-print-log-msg)
 #+end_src
 
-* Do Things Only When on macOS
+* DONE Do Things Only When on macOS
 
-** Start Condition – macOS
+** DONE Start Condition – macOS
 #+begin_src emacs-lisp
   (when (memq window-system '(mac ns))
 #+end_src
 
-** Use gls instead of ls in dired
+** DONE Use gls instead of ls in dired
 
 #+begin_src emacs-lisp
   (if (executable-find "gls")
@@ -191,14 +198,14 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
     (message "Please install GNU coreutils via `brew install coreutils`"))
 #+end_src
 
-** Move Files to Trash
+** DONE Move Files to Trash
 
 #+begin_src emacs-lisp
   (setq delete-by-moving-to-trash			t)
   (setq mac-system-move-file-to-trash-use-finder	t)
 #+end_src
 
-** Reveal in Finder
+** DONE Reveal in Finder
 
 [[https://github.com/kaz-yos/reveal-in-osx-finder][reveal-in-osx-finder]]
 
@@ -208,7 +215,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
     :bind ("C-c f" . reveal-in-osx-finder))
 #+end_src
 
-** End Condition - macOS
+** DONE End Condition - macOS
 #+begin_src emacs-lisp
   )
 #+end_src
@@ -247,7 +254,7 @@ This is the literate programming version of my Emacs config. Blocks are tangled 
     (global-visual-line-mode t))
 #+end_src
 
-* global-auto-revert-mode
+* DONE global-auto-revert-mode
 
 Automatically revert buffers when file changes on disk.
 
@@ -255,17 +262,17 @@ Automatically revert buffers when file changes on disk.
   (global-auto-revert-mode t)
 #+end_src
 
-* calendar-week-day-start
+* DONE calendar-week-day-start
 
 #+begin_src emacs-lisp
   (setq calendar-week-start-day 1)
 #+end_src
 
-* Additional Key Bindings
+* DONE Additional Key Bindings
 
 Some more are implemented where needed, use isearch to see them all.
 
-* recentf-mode
+* DONE recentf-mode
 
 #+begin_src emacs-lisp
   (use-package emacs
@@ -289,7 +296,7 @@ Some more are implemented where needed, use isearch to see them all.
     (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 #+end_src
 
-* which-key
+* DONE which-key
 
 [[https://github.com/justbur/emacs-which-key][which-key]]
 
@@ -301,18 +308,6 @@ Some more are implemented where needed, use isearch to see them all.
     :delight
     :config
     (which-key-mode)
-    )
-#+end_src
-
-* display-line-numbers
-
-#+begin_src emacs-lisp
-  (use-package emacs
-    :custom
-    (display-line-numbers-type	'visual)
-    (display-line-numbers-width	3)
-    :hook
-    ((org-mode prog-mode). display-line-numbers-mode)
     )
 #+end_src
 
@@ -355,7 +350,7 @@ Some more are implemented where needed, use isearch to see them all.
     )
 #+end_src
 
-* vertico
+* DONE vertico
 
 [[https://github.com/minad/vertico][vertico]]
 
@@ -365,7 +360,7 @@ Some more are implemented where needed, use isearch to see them all.
     (vertico-mode))
 #+end_src
 
-* marginalia-mode
+* DONE marginalia-mode
 
 #+begin_src emacs-lisp
   (use-package marginalia
@@ -375,7 +370,7 @@ Some more are implemented where needed, use isearch to see them all.
     (marginalia-mode))
 #+end_src
 
-* orderless
+* DONE orderless
 
 [[https://github.com/oantolin/orderless][orderless]]
 
@@ -445,26 +440,51 @@ Some more are implemented where needed, use isearch to see them all.
        (swiftui		. t)
        (C		. t)
        (python		. t)
+       (haskell		. t)
        )))
 #+end_src
 
 ** Structure Templates
 
 #+begin_src emacs-lisp
-  (with-eval-after-load 'org
-    (require 'org-tempo)
+    (with-eval-after-load 'org
+      (require 'org-tempo)
 
-    (add-to-list 'org-structure-template-alist '("el"		.	"src emacs-lisp"))
-    (add-to-list 'org-structure-template-alist '("sh"		.	"src shell"))
-    (add-to-list 'org-structure-template-alist '("clang"	.	"src C :includes '(stdio.h) :flags -std=c90"))
-    (add-to-list 'org-structure-template-alist '("cpp"		.	"src C++ :includes '(iostream) :flags -std=c++20"))
-    (add-to-list 'org-structure-template-alist '("sw"		.	"src swift"))
-    (add-to-list 'org-structure-template-alist '("swui"		.	"src swiftui"))
-    (add-to-list 'org-structure-template-alist '("py"		.	"src python"))
-    )
+      (add-to-list 'org-structure-template-alist '("el"		.	"src emacs-lisp"))
+      (add-to-list 'org-structure-template-alist '("sh"		.	"src shell"))
+      (add-to-list 'org-structure-template-alist '("clang"	.	"src C :includes '(stdio.h) :flags -std=c90"))
+      (add-to-list 'org-structure-template-alist '("cpp"		.	"src C++ :includes '(iostream) :flags -std=c++20"))
+      (add-to-list 'org-structure-template-alist '("sw"		.	"src swift"))
+      (add-to-list 'org-structure-template-alist '("swui"		.	"src swiftui"))
+      (add-to-list 'org-structure-template-alist '("py"		.	"src python"))
+      (add-to-list 'org-structure-template-alist '("hs"		.	"src haskell"))
+      (add-to-list 'org-structure-template-alist '("ex"		.	"example"))
+      (add-to-list 'org-structure-template-alist '("proof"	.	"proof"))
+      )
+
+    (dolist (elem
+      	 '(
+      	   (org-latex-listings . t)
+      	   (org-latex-src-block-backend . listings)
+      	   ))
+      (cl-pushnew elem safe-local-variable-values))
+
+  (defun oe/replace-fmap (text backend info)
+    "Replace occurrences of 'fmap' with 'HONULULU' during LaTeX export."
+    (when (eq backend 'latex)
+      (debug)
+      (setq text (replace-regexp-in-string "\\\\begin{proof}" "\\\\begin{verbatim}" text))
+      (setq text (replace-regexp-in-string "\\\\end{proof}" "\\\\end{verbatim}" text)))
+    text)
+      
+
+    (eval-after-load 'ox-latex
+      '(add-to-list
+        'org-export-filter-special-block-functions
+        'oe/replace-fmap))
 #+end_src
 
-** Auto Tangle
+** DONE Auto Tangle
 :PROPERTIES:
 :CUSTOM_ID: auto_tangle
 :END:
@@ -582,6 +602,30 @@ Some more are implemented where needed, use isearch to see them all.
 	  ))
 #+end_src
 
+* olivetti
+
+[[https://github.com/rnkn/olivetti][olivetti]]
+
+#+begin_src emacs-lisp
+  (use-package olivetti
+    :custom
+    (olivetti-body-width 80))
+
+  (add-hook 'org-mode-hook 'olivetti-mode)
+
+#+end_src
+
+* DONE centered-cursor-mode
+
+[[https://github.com/emacsmirror/centered-cursor-mode][centered-cursor-mode]]
+
+#+begin_src emacs-lisp
+  (use-package centered-cursor-mode
+    :demand
+    :config
+    (global-centered-cursor-mode))
+#+end_src
+
 * Generate ~init.el~ Footer
 
 ** Done Message
@@ -611,5 +655,22 @@ Some more are implemented where needed, use isearch to see them all.
   (use-package vterm
     :custom
     (vterm-max-scrollback 10000))
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package 'lsp)
+  (use-package 'lsp-haskell)
+#+end_src
+
+** display-line-numbers
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :custom
+    (display-line-numbers-type	'visual)
+    (display-line-numbers-width	3)
+    :hook
+    ((org-mode prog-mode). display-line-numbers-mode)
+    )
 #+end_src
 

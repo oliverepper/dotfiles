@@ -1,0 +1,607 @@
+# -*- mode: org; -*-
+#+AUTHOR: Oliver Epper <oliver.epper@gmail.com>
+#+PROPERTY: header-args:emacs-lisp :tangle ~/.config/emacs/init.el :mkdirp yes
+#+STARTUP: overview
+
+* Info
+:PROPERTIES:
+:VISIBILITY: children
+:END:
+
+This is the literate programming version of a minimal Emacs config. Blocks are tangled into XDG compatible config files in [[~/.config/emacs/init.el][init.el]]. See [[#auto-tangle][Auto Tangle]]
+
+* Generate ~init.el~ Header
+
+#+NAME: filename
+#+begin_src emacs-lisp :tangle no :eval (setq org-confirm-babel-evaluate nil) :results values
+  (eval buffer-file-name)
+#+end_src
+
+#+NAME: version_info
+#+begin_src emacs-lisp :tangle no :eval (setq org-confirm-babel-evaluate nil) :results values
+  (eval (concat (format "Emacs version: %s\n" (emacs-version))
+                (format "Org version: %s" (org-version))))
+#+end_src
+
+#+begin_src emacs-lisp :noweb yes
+  ;; This file is generated from <<filename()>>
+  ;; <<version_info()>>
+#+end_src
+
+* Custom File
+
+#+begin_src emacs-lisp
+  (setq custom-file (locate-user-emacs-file "custom.el"))
+#+end_src
+
+* TODO Backup Files
+
+#+begin_src emacs-lisp
+  (setq backup-directory-alist '(("." . "~/EMACS_BACKUPS")))
+#+end_src
+
+* Garbage Collection
+
+#+begin_src emacs-lisp
+  (setq gc-cons-threshold (* 100 1000 1000))
+#+end_src
+
+* Package Manager
+
+#+begin_src emacs-lisp
+  (require 'package)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+
+  (package-initialize)
+  (unless package-archive-contents
+    (package-refresh-contents))
+
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)		
+  (setq use-package-always-ensure t)
+#+end_src
+
+* Default Frame
+
+#+begin_src emacs-lisp
+  (dolist (elem
+  	 '(
+  	   (width			.	0.6)
+  	   (height			.	0.95)
+
+  	   (user-position		.	t)
+  	   (left			.	0.5)
+  	   (top			.	0.5)
+  	   
+  	   (ns-transparent-titlebar	.	t)
+
+  	   (internal-border-width	.	8)
+  	   (left-fringe		.	0)
+  	   (right-fringe		.	0)
+  	   ))
+    (cl-pushnew elem default-frame-alist))
+
+  (tool-bar-mode	-1)
+  (scroll-bar-mode	-1)
+  (menu-bar-mode	1)
+#+end_src
+
+* Font & Line Spacing
+
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font "JetBrains Mono:size=12")
+  (set-face-attribute 'fixed-pitch nil :font (face-attribute 'default :font))
+  (setq-default line-spacing 0.3)
+#+end_src
+
+* Packages
+
+* macOS Specific Settings
+
+** Start Condition - macOS
+
+#+begin_src emacs-lisp
+  (when (memq window-system '(mac ns))
+#+end_src
+
+** Restore some Option-Key Combinations
+
+I only do this for the combinations that are deeply engrained in my muscle memory.
+
+#+begin_src emacs-lisp
+  ;; (global-set-key (kbd "M-5") (lambda () (interactive) (insert "[")))
+  ;; (global-set-key (kbd "M-6") (lambda () (interactive) (insert "]")))
+  ;; (global-set-key (kbd "M-7") (lambda () (interactive) (insert "|")))
+  ;; (global-set-key (kbd "M-/") (lambda () (interactive) (insert "\\")))
+  ;; (global-set-key (kbd "M-8") (lambda () (interactive) (insert "{")))
+  ;; (global-set-key (kbd "M-9") (lambda () (interactive) (insert "}")))
+  ;; (global-set-key (kbd "M-n") (lambda () (interactive) (insert "~")))
+  ;; (global-set-key (kbd "M-l") (lambda () (interactive) (insert "@")))
+#+end_src
+
+For the rest I make sure that the right option-key is still an option-key.
+
+#+begin_src emacs-lisp
+  ;; (setq mac-right-option-modifier 'none)
+  (setq mac-option-modifier 'none)
+  (setq mac-function-modifier 'meta)
+#+end_src
+
+** Use ~gls~ instead of ~ls~ in dired
+
+#+begin_src emacs-lisp
+  (if (executable-find "gls")
+      (setq insert-directory-program "gls")
+    (message "Please install GNU coreutils via `brew install coreutils`"))
+#+end_src
+
+** Move Files to Trash
+
+#+begin_src emacs-lisp
+  (setq delete-by-moving-to-trash			t)
+  (setq mac-system-move-file-to-trash-use-finder	t)
+#+end_src
+** Reveal in Finder
+
+[[https://github.com/kaz-yos/reveal-in-osx-finder][reveal-in-osx-finder]]
+
+#+begin_src emacs-lisp
+  (use-package reveal-in-osx-finder
+    :commands reveal-in-osx-finder 
+    :bind ("C-c f" . reveal-in-osx-finder))
+#+end_src
+
+** End Condition - macOS
+
+#+begin_src emacs-lisp
+  )
+#+end_src
+
+* Configure Paths
+
+#+begin_src emacs-lisp
+  (defun oe/add-to-path (paths)
+    "Check each directory in PATHS, and add to exec-path and the environment path if it exists."
+    (dolist (path paths)
+      (let ((expanded-path (expand-file-name path)))
+        (if (file-directory-p expanded-path)
+      	  (progn
+      	    (add-to-list 'exec-path expanded-path)
+    	    (setenv "PATH" (concat expanded-path ":" (getenv "PATH")))
+      	    (message "Added to path: %s" expanded-path))
+      	(message "Path does not exist: %s" expanded-path)))))
+
+  (oe/add-to-path '(
+  				      "~/nonexistant"
+  				      "~/.ghcup/bin"
+  				      "/Library/TeX/texbin"
+  				      "/opt/homebrew/bin"
+  				      "/Users/oliver/.pyenv/shims"
+   				      ))
+#+end_src
+
+* vertico
+
+[[https://github.com/minad/vertico][vertico]]
+
+#+begin_src emacs-lisp
+(use-package vertico
+  ;; :custom
+  ;; (vertico-scroll-margin 0) ;; Different scroll margin
+  ;; (vertico-count 20) ;; Show more candidates
+  ;; (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
+  ;; (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
+  :init
+  (vertico-mode))
+#+end_src
+
+* orderless
+
+[[https://github.com/oantolin/orderless][orderless]]
+
+#+begin_src emacs-lisp
+  (use-package orderless
+    :ensure t
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides
+     '((file
+        (styles basic partial-completion)
+        ))
+     ))
+#+end_src
+
+* marginalia-mode
+
+[[https://github.com/minad/marginalia][marginalia]]
+
+#+begin_src emacs-lisp
+  (use-package marginalia
+    :bind (:map minibuffer-local-map
+		("M-A" . marginalia-cycle))
+    :init
+    (marginalia-mode))
+#+end_src
+
+* Auto Revert Mode
+
+Automatically revert buffers when files change on disk.
+
+#+begin_src emacs-lisp
+  (global-auto-revert-mode t)
+#+end_src
+
+* Org Mode
+
+** General Setup
+
+#+begin_src emacs-lisp
+  (use-package org
+    :custom
+    (org-return-follows-link t)
+    :commands (org-mode arg-agenda)
+    :config
+    (progn
+      (require 'org-mouse))
+    )
+#+end_src
+
+** Auto Tangle
+:PROPERTIES:
+:CUSTOM_ID: auto-tangle
+:END:
+
+#+begin_src emacs-lisp
+  (defun oe/org-babel-tangle-config ()
+    (let ((file-dir (file-name-directory (buffer-file-name))))
+      (when (or (string-prefix-p (expand-file-name user-emacs-directory) file-dir)
+                (string-prefix-p (expand-file-name "~/dotfiles/emacs/.config/emacs/") file-dir))
+        (let ((org-confirm-babel-evaluate nil))
+          (org-babel-tangle)))))
+
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'oe/org-babel-tangle-config)))
+#+end_src
+
+** Load Languages
+
+#+begin_src emacs-lisp
+  (use-package ob-swift)
+
+  (use-package ob-swiftui)
+
+  (use-package haskell-mode)
+
+  (with-eval-after-load 'org
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '(
+       (emacs-lisp	. t)
+       (shell		. t)
+       (C		. t)
+       (haskell		. t)
+       (swift		. t)
+       (swiftui		. t)
+       (python		. t)
+       (groovy		. t)
+       (java		. t)
+       )))
+#+end_src
+
+** Structure Templates
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (require 'org-tempo)
+
+    (add-to-list 'org-structure-template-alist '("el"	.	"src emacs-lisp"))
+    (add-to-list 'org-structure-template-alist '("sh"	.	"src shell"))
+    (add-to-list 'org-structure-template-alist '("clang".	"src C :includes '(stdio.h) :flags -std=c90"))
+    (add-to-list 'org-structure-template-alist '("cpp"	.	"src C++ :includes '(iostream) :flags -std=c++23"))
+    (add-to-list 'org-structure-template-alist '("hs"	.	"src haskell"))
+    (add-to-list 'org-structure-template-alist '("sw"	.	"src swift"))
+    (add-to-list 'org-structure-template-alist '("swui"	.	"src swiftui"))
+    (add-to-list 'org-structure-template-alist '("py"	.	"src python"))
+    (add-to-list 'org-structure-template-alist '("gro"	.	"src groovy"))
+    (add-to-list 'org-structure-template-alist '("jav"	.	"src java"))
+    )
+#+end_src
+
+** Capture Templates
+
+#+begin_src emacs-lisp
+  (setq org-capture-templates
+        '(
+  	("d" "Document" plain
+           (file (lambda ()
+                   (let* ((dir (read-directory-name "Select directory: "))
+                  	(filename (read-string "Enter filename: ")))
+                     (expand-file-name
+                      (if (string-suffix-p ".org" filename)
+                  	filename
+                        (concat filename ".org"))
+    		    dir))))  	       
+           "# -*- mode: org; org-confirm-babel-evaluate: nil -*-
+  ,#+TITLE: %^{Title}
+  ,#+AUTHOR: %^{Author|Oliver Epper}
+
+  ,#+LATEX_COMPILER: xelatex
+  ,#+LATEX_HEADER: \\usepackage{fontspec}
+  ,#+LATEX_HEADER: \\usepackage{listings}
+  ,#+LATEX_HEADER: \\usepackage{amsmath}
+  ,#+LATEX_HEADER: \\usepackage{amssymb}
+  ,#+LATEX_HEADER: \\usepackage{amsthm}
+  ,#+LATEX_HEADER: \\setmainfont{Noto Serif}
+  ,#+LATEX_HEADER: \\setmonofont{JetBrains Mono NL}
+  ,#+LATEX_HEADER: \\hypersetup{colorlinks=true, linkcolor=blue, pdfborder={0 0 0}}
+
+  ,#+LANGUAGE: de
+  ,#+LATEX_HEADER: \\usepackage[ngerman]{babel}
+
+  %?"
+    	 :empty-lines -1)
+
+  	("t" "Header" plain
+  	 (function
+  	  (lambda ()
+  	    (goto-char (point-min))))
+  	 "# -*- mode: org; org-confirm-babel-evalute: nil -*-
+
+  %?"
+  	 :empty-lines -1)
+  	)
+        )
+#+end_src
+
+** Org Roam
+
+#+begin_src emacs-lisp
+  ;; create roam directory if missing
+  (defconst oe/org-roam-directory "~/org/roam")
+  (unless (file-directory-p oe/org-roam-directory)
+    (make-directory oe/org-roam-directory t))
+
+  (use-package org-roam
+    :custom
+    (org-roam-directory oe/org-roam-directory)
+    (org-roam-node-display-template
+     (concat
+      "${title:*}" (propertize "${tags:25}" 'face 'org-tag)
+      ))
+    :bind
+    (
+     ("C-c n f" . org-roam-node-find)
+     ("C-c n i" . org-roam-node-insert)
+     )
+    :bind-keymap
+    ("C-c n d" . org-roam-dailies-map)
+    :config
+    (require 'org-roam-dailies)
+    (org-roam-setup))
+#+end_src
+
+* Olivetti Mode
+
+[[https://github.com/rnkn/olivetti][olivetti]]
+
+#+begin_src emacs-lisp
+  (use-package olivetti
+    :custom
+    (olivetti-body-width 80))
+
+  (add-hook 'org-mode-hook 'olivetti-mode)
+
+#+end_src
+
+* Centered Cursor Mode
+
+[[https://github.com/emacsmirror/centered-cursor-mode][centered-cursor-mode]]
+
+#+begin_src emacs-lisp
+  (use-package centered-cursor-mode
+    :demand
+    :config
+    (global-centered-cursor-mode))
+#+end_src
+
+* Safe Variables
+
+** Google Chrome
+
+Allow opening links in Incognito Mode
+
+#+begin_src emacs-lisp
+  (dolist (elem
+  	   '(
+  	     (browse-url-browser-function . browse-url-generic)
+  	     (browse-url-generic-program . "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+  	     (browse-url-generic-args . ("--incognito"))
+  	     ))
+    (cl-pushnew elem safe-local-variable-values))
+#+end_src
+
+
+Without this after closing the opened browser Emacs got the focus back but was *not* the key window.
+Emacs was the foreground app but you couldn't use the keyboard to navigate. This fixes it!
+
+#+begin_src emacs-lisp
+  (defun oe/focus-emacs ()
+    "This function runs the side-effect of using Apple Script
+  to tell Emacs to active"
+    (shell-command "osascript -e 'tell application \"Emacs\" to activate'"))
+
+  (advice-add 'browse-url-generic :after #'oe/focus-emacs)
+#+end_src
+
+** TODO Olivetti Mode Body Width
+
+#+begin_src emacs-lisp
+  (add-to-list 'safe-local-variable-values
+  	     '(olivetti-body-width . (lambda (val)
+  				       (and
+  					(integerp val)
+  					(>= val 80)
+  					(<= val 120)))))
+  (dolist (elem
+  	 '(
+  	   (olivetti-body-width . (lambda (_) t))
+  	   ))
+    (cl-pushnew elem safe-local-variable-values))
+#+end_src
+
+* Recent Files
+
+#+begin_src emacs-lisp
+  (use-package emacs
+  :custom
+  (recentf-exclude '(".excluded"))
+  (recentf-max-menu-items 10)
+  (recentf-max-saved-items 10)
+  :config
+  (recentf-mode t)
+  :bind ("C-c r" . #'recentf-open-files))
+#+end_src
+
+* Which Key
+
+#+begin_src emacs-lisp
+  (require 'which-key)
+  (setq which-key-idle-delay 0.3)
+  (which-key-mode)
+#+end_src
+
+* Modus Themes
+
+** Setup
+
+#+begin_src emacs-lisp
+  (defun oe/save-selected-theme (theme)
+    (with-temp-file (expand-file-name "selected-theme.el" user-emacs-directory)
+      (insert (format "(load-theme '%s :no-confirm)\n" theme))))
+
+  (use-package modus-themes
+    :demand
+    :custom
+    (modus-themes-to-toggle		'(modus-operandi modus-vivendi))
+    (modus-themes-disable-other-themes	t)
+
+    (modus-themes-italic-constructs	t)
+    (modus-themes-variable-pitch-ui	t)
+    (modus-themes-mixed-fonts		t)
+
+    (modus-themes-prompts		'(bold))
+    (modus-themes-org-blocks		'tinted-background)
+
+    (modus-themes-headings
+     '(
+       (1			. (1.215))
+       (2			. (1.138))
+       (3			. (1.076))
+       (4			. (1.0))
+       (5			. (0.937))
+
+       (agenda-date		. (variable-pitch italic 1.138))
+       (agenda-structure	. (variable-pitch light 1.215))
+       (t			. (medium))
+       ))
+
+    (modus-themes-common-palette-overrides
+     '(
+       (border-mode-line-active		bg-mode-line-active)
+       (border-mode-line-inactive	bg-mode-line-inactive)
+       ))
+    :bind ("<f5>" . (lambda ()
+		      (interactive)
+		      (oe/save-selected-theme (modus-themes-toggle))))
+    :config
+    (let ((last (expand-file-name "selected-theme.el" user-emacs-directory)))
+      (if (file-exists-p last)
+	  (load last)
+	(load-theme (car modus-themes-to-toggle) :no-confirm))))
+#+end_src
+
+** Cycle through all Modus-Themes
+
+#+begin_src emacs-lisp
+  (defun oe/rotate-list (list)
+    (when list
+      (append (cdr list) (list (car list)))))
+
+  (defun oe/cycle-themes (theme-list)
+    (load-theme (car theme-list) :no-confirm)
+    (oe/rotate-list theme-list))
+
+  (defun oe/cycle-themes-and-print-log-msg ()
+    (interactive)
+    (defvar modus-themes--cycle modus-themes-items)
+    (setq modus-themes--cycle (oe/cycle-themes modus-themes--cycle))
+    (let ((selected-theme (car (reverse modus-themes--cycle))))
+      (message "Theme: %s selected" selected-theme)
+      (oe/save-selected-theme selected-theme)))
+
+  (global-set-key (kbd "<f4>") #'oe/cycle-themes-and-print-log-msg)
+#+end_src
+
+* Start Week on Monday
+
+#+begin_src emacs-lisp
+  (setq calendar-week-start-day 1)
+#+end_src
+
+* Rainbow Delimiters
+
+[[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters]]
+
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+* corfu
+
+[[https://github.com/minad/corfu][corfu]]
+
+#+begin_src emacs-lisp
+  (use-package corfu
+    :ensure t
+    :init
+    (global-corfu-mode))
+#+end_src
+
+* vterm
+
+[[https://github.com/akermu/emacs-libvterm/][vterm]]
+
+#+begin_src emacs-lisp
+  (use-package vterm
+    :custom
+    (vterm-max-scrollback 10000))
+#+end_src
+
+* Magit
+
+#+begin_src emacs-lisp
+  (use-package magit)
+#+end_src
+
+* Done Message
+
+#+begin_src emacs-lisp
+  (message "Done loading: %s" (or load-file-name buffer-file-name))
+
+  (defun oe/startup-message ()
+      (message "Emacs loaded in %s with %d garbage collections."
+	       (format "%.2f seconds"
+		       (float-time
+			(time-subtract after-init-time before-init-time)))
+	       gcs-done))
+  
+  (add-hook 'emacs-startup-hook #'oe/startup-message)
+#+end_src
+
+* Generate ~init.el~ Footer
+
+#+begin_src emacs-lisp :noweb yes
+  ;; End
+#+end_src
