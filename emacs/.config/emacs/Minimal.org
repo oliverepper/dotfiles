@@ -32,12 +32,47 @@ This is the literate programming version of a minimal Emacs config. Blocks are t
 
 #+begin_src emacs-lisp
   (setq custom-file (locate-user-emacs-file "custom.el"))
+
+  (unless (file-exists-p custom-file)
+    (message-box "No custom.el, yet")
+    (custom-set-variables
+     '(visible-bell t))
+    (custom-save-all))
+
+  (load-file custom-file)
 #+end_src
 
-* TODO Backup Files
+* Safe Variables
+
+** Google Chrome
+
+Allow opening links in Incognito Mode
 
 #+begin_src emacs-lisp
-  (setq backup-directory-alist '(("." . "~/EMACS_BACKUPS")))
+(defun oe/browse-incognito (url &rest _args)
+  (let ((browse-url-generic-program "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+	(browse-url-generic-args '("--incognito")))
+    (browse-url-generic url)))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun oe/browse-url-handlers-safe-value-p (_) t)
+
+  (put 'browse-url-handlers 'safe-local-variable
+       'oe/browse-url-handlers-safe-value-p)
+#+end_src
+
+** Olivetti Mode Body Width
+
+#+begin_src emacs-lisp
+  (defun oe/olivetti-body-width-safe-value-p (val)
+    (and
+     (integerp val)
+     (>= val 80)
+     (<= val 120)))
+
+  (put 'olivetti-body-width 'safe-local-variable
+       'oe/olivetti-body-width-safe-value-p)
 #+end_src
 
 * Garbage Collection
@@ -52,20 +87,23 @@ This is the literate programming version of a minimal Emacs config. Blocks are t
   (require 'package)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
-  (package-initialize)
-  (unless package-archive-contents
-    (package-refresh-contents))
+  ;; (package-initialize)
 
-  (unless (package-installed-p 'use-package)
-    (package-install 'use-package))
+  ;; (unless package-archive-contents
+  ;;   (package-refresh-contents))
 
-  (require 'use-package)		
+  ;; (unless (package-installed-p 'use-package)
+  ;;   (package-install 'use-package))
+
+  ;; (require 'use-package)		
   (setq use-package-always-ensure t)
 #+end_src
 
 * Default Frame
 
 #+begin_src emacs-lisp
+  (require 'cl-lib)
+
   (dolist (elem
   	 '(
   	   (width			.	0.6)
@@ -96,7 +134,28 @@ This is the literate programming version of a minimal Emacs config. Blocks are t
   (setq-default line-spacing 0.3)
 #+end_src
 
-* Packages
+* Configure Paths
+
+#+begin_src emacs-lisp
+  (defun oe/add-to-path (paths)
+    "Check each directory in PATHS, and add to exec-path and the environment path if it exists."
+    (dolist (path paths)
+      (let ((expanded-path (expand-file-name path)))
+        (if (file-directory-p expanded-path)
+      	  (progn
+      	    (add-to-list 'exec-path expanded-path)
+    	    (setenv "PATH" (concat expanded-path ":" (getenv "PATH")))
+      	    (message "Added to path: %s" expanded-path))
+      	(message "Path does not exist: %s" expanded-path)))))
+
+  (oe/add-to-path '(
+  				      "~/nonexistant"
+  				      "~/.ghcup/bin"
+  				      "/Library/TeX/texbin"
+  				      "/opt/homebrew/bin"
+  				      "/Users/oliver/.pyenv/shims"
+   				      ))
+#+end_src
 
 * macOS Specific Settings
 
@@ -106,27 +165,12 @@ This is the literate programming version of a minimal Emacs config. Blocks are t
   (when (memq window-system '(mac ns))
 #+end_src
 
-** Restore some Option-Key Combinations
-
-I only do this for the combinations that are deeply engrained in my muscle memory.
+** Keyboard Configuration
 
 #+begin_src emacs-lisp
-  ;; (global-set-key (kbd "M-5") (lambda () (interactive) (insert "[")))
-  ;; (global-set-key (kbd "M-6") (lambda () (interactive) (insert "]")))
-  ;; (global-set-key (kbd "M-7") (lambda () (interactive) (insert "|")))
-  ;; (global-set-key (kbd "M-/") (lambda () (interactive) (insert "\\")))
-  ;; (global-set-key (kbd "M-8") (lambda () (interactive) (insert "{")))
-  ;; (global-set-key (kbd "M-9") (lambda () (interactive) (insert "}")))
-  ;; (global-set-key (kbd "M-n") (lambda () (interactive) (insert "~")))
-  ;; (global-set-key (kbd "M-l") (lambda () (interactive) (insert "@")))
-#+end_src
-
-For the rest I make sure that the right option-key is still an option-key.
-
-#+begin_src emacs-lisp
-  ;; (setq mac-right-option-modifier 'none)
   (setq mac-option-modifier 'none)
   (setq mac-function-modifier 'meta)
+  (setq default-input-method "MacOSX")
 #+end_src
 
 ** Use ~gls~ instead of ~ls~ in dired
@@ -159,70 +203,21 @@ For the rest I make sure that the right option-key is still an option-key.
   )
 #+end_src
 
-* Configure Paths
+* Super Easy Config File Handling
 
 #+begin_src emacs-lisp
-  (defun oe/add-to-path (paths)
-    "Check each directory in PATHS, and add to exec-path and the environment path if it exists."
-    (dolist (path paths)
-      (let ((expanded-path (expand-file-name path)))
-        (if (file-directory-p expanded-path)
-      	  (progn
-      	    (add-to-list 'exec-path expanded-path)
-    	    (setenv "PATH" (concat expanded-path ":" (getenv "PATH")))
-      	    (message "Added to path: %s" expanded-path))
-      	(message "Path does not exist: %s" expanded-path)))))
+  (global-set-key (kbd "s-.")
+		  (lambda ()
+		    (interactive)
+		    (find-file
+		     (expand-file-name "~/dotfiles/emacs/.config/emacs/Minimal.org"))))
 
-  (oe/add-to-path '(
-  				      "~/nonexistant"
-  				      "~/.ghcup/bin"
-  				      "/Library/TeX/texbin"
-  				      "/opt/homebrew/bin"
-  				      "/Users/oliver/.pyenv/shims"
-   				      ))
-#+end_src
+  (global-set-key (kbd "s-r")
+		  (lambda ()
+		    (interactive)
+		    (load-file
+		     (expand-file-name "~/.config/emacs/init.el"))))
 
-* vertico
-
-[[https://github.com/minad/vertico][vertico]]
-
-#+begin_src emacs-lisp
-(use-package vertico
-  ;; :custom
-  ;; (vertico-scroll-margin 0) ;; Different scroll margin
-  ;; (vertico-count 20) ;; Show more candidates
-  ;; (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
-  ;; (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-  :init
-  (vertico-mode))
-#+end_src
-
-* orderless
-
-[[https://github.com/oantolin/orderless][orderless]]
-
-#+begin_src emacs-lisp
-  (use-package orderless
-    :ensure t
-    :custom
-    (completion-styles '(orderless basic))
-    (completion-category-overrides
-     '((file
-        (styles basic partial-completion)
-        ))
-     ))
-#+end_src
-
-* marginalia-mode
-
-[[https://github.com/minad/marginalia][marginalia]]
-
-#+begin_src emacs-lisp
-  (use-package marginalia
-    :bind (:map minibuffer-local-map
-		("M-A" . marginalia-cycle))
-    :init
-    (marginalia-mode))
 #+end_src
 
 * Auto Revert Mode
@@ -267,7 +262,8 @@ Automatically revert buffers when files change on disk.
 ** Load Languages
 
 #+begin_src emacs-lisp
-  (use-package ob-swift)
+  (use-package ob-swift
+    :ensure t)
 
   (use-package ob-swiftui)
 
@@ -347,6 +343,21 @@ Automatically revert buffers when files change on disk.
   	  (lambda ()
   	    (goto-char (point-min))))
   	 "# -*- mode: org; org-confirm-babel-evalute: nil -*-
+  ,#+TITLE: %^{Title}
+  ,#+AUTHOR: %^{Author|Oliver Epper}
+
+  ,#+LATEX_COMPILER: xelatex
+  ,#+LATEX_HEADER: \\usepackage{fontspec}
+  ,#+LATEX_HEADER: \\usepackage{listings}
+  ,#+LATEX_HEADER: \\usepackage{amsmath}
+  ,#+LATEX_HEADER: \\usepackage{amssymb}
+  ,#+LATEX_HEADER: \\usepackage{amsthm}
+  ,#+LATEX_HEADER: \\setmainfont{Noto Serif}
+  ,#+LATEX_HEADER: \\setmonofont{JetBrains Mono NL}
+  ,#+LATEX_HEADER: \\hypersetup{colorlinks=true, linkcolor=blue, pdfborder={0 0 0}}
+
+  ,#+LANGUAGE: de
+  ,#+LATEX_HEADER: \\usepackage[ngerman]{babel}
 
   %?"
   	 :empty-lines -1)
@@ -379,75 +390,9 @@ Automatically revert buffers when files change on disk.
     :config
     (require 'org-roam-dailies)
     (org-roam-setup))
-#+end_src
 
-* Olivetti Mode
-
-[[https://github.com/rnkn/olivetti][olivetti]]
-
-#+begin_src emacs-lisp
-  (use-package olivetti
-    :custom
-    (olivetti-body-width 80))
-
-  (add-hook 'org-mode-hook 'olivetti-mode)
-
-#+end_src
-
-* Centered Cursor Mode
-
-[[https://github.com/emacsmirror/centered-cursor-mode][centered-cursor-mode]]
-
-#+begin_src emacs-lisp
-  (use-package centered-cursor-mode
-    :demand
-    :config
-    (global-centered-cursor-mode))
-#+end_src
-
-* Safe Variables
-
-** Google Chrome
-
-Allow opening links in Incognito Mode
-
-#+begin_src emacs-lisp
-  (dolist (elem
-  	   '(
-  	     (browse-url-browser-function . browse-url-generic)
-  	     (browse-url-generic-program . "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-  	     (browse-url-generic-args . ("--incognito"))
-  	     ))
-    (cl-pushnew elem safe-local-variable-values))
-#+end_src
-
-
-Without this after closing the opened browser Emacs got the focus back but was *not* the key window.
-Emacs was the foreground app but you couldn't use the keyboard to navigate. This fixes it!
-
-#+begin_src emacs-lisp
-  (defun oe/focus-emacs ()
-    "This function runs the side-effect of using Apple Script
-  to tell Emacs to active"
-    (shell-command "osascript -e 'tell application \"Emacs\" to activate'"))
-
-  (advice-add 'browse-url-generic :after #'oe/focus-emacs)
-#+end_src
-
-** TODO Olivetti Mode Body Width
-
-#+begin_src emacs-lisp
-  (add-to-list 'safe-local-variable-values
-  	     '(olivetti-body-width . (lambda (val)
-  				       (and
-  					(integerp val)
-  					(>= val 80)
-  					(<= val 120)))))
-  (dolist (elem
-  	 '(
-  	   (olivetti-body-width . (lambda (_) t))
-  	   ))
-    (cl-pushnew elem safe-local-variable-values))
+  (with-eval-after-load 'org-roam
+    (define-key org-mode-map (kbd "C-c n t") 'org-roam-tag-add))
 #+end_src
 
 * Recent Files
@@ -461,14 +406,6 @@ Emacs was the foreground app but you couldn't use the keyboard to navigate. This
   :config
   (recentf-mode t)
   :bind ("C-c r" . #'recentf-open-files))
-#+end_src
-
-* Which Key
-
-#+begin_src emacs-lisp
-  (require 'which-key)
-  (setq which-key-idle-delay 0.3)
-  (which-key-mode)
 #+end_src
 
 * Modus Themes
@@ -549,7 +486,32 @@ Emacs was the foreground app but you couldn't use the keyboard to navigate. This
   (setq calendar-week-start-day 1)
 #+end_src
 
-* Rainbow Delimiters
+* Additional Packages
+** Olivetti Mode
+
+[[https://github.com/rnkn/olivetti][olivetti]]
+
+#+begin_src emacs-lisp
+  (use-package olivetti
+    :custom
+    (olivetti-body-width 80))
+
+  (add-hook 'org-mode-hook 'olivetti-mode)
+
+#+end_src
+
+** Centered Cursor Mode
+
+[[https://github.com/emacsmirror/centered-cursor-mode][centered-cursor-mode]]
+
+#+begin_src emacs-lisp
+  (use-package centered-cursor-mode
+    :demand
+    :config
+    (global-centered-cursor-mode))
+#+end_src
+
+** Rainbow Delimiters
 
 [[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters]]
 
@@ -558,31 +520,106 @@ Emacs was the foreground app but you couldn't use the keyboard to navigate. This
   :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
-* corfu
+** TODO vertico
+
+There a few more things to try out that might really be helpful. Check the sample config of the project README.
+
+[[https://github.com/minad/vertico][vertico]]
+
+#+begin_src emacs-lisp
+(use-package vertico
+  ;; :custom
+  ;; (vertico-scroll-margin 0) ;; Different scroll margin
+  ;; (vertico-count 20) ;; Show more candidates
+  ;; (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
+  ;; (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
+  :init
+  (vertico-mode))
+#+end_src
+
+** marginalia-mode
+
+[[https://github.com/minad/marginalia][marginalia]]
+
+#+begin_src emacs-lisp
+  (use-package marginalia
+    ;; :bind (:map minibuffer-local-map
+    ;; 	      ("M-A" . marginalia-cycle))
+    :init
+    (marginalia-mode))
+#+end_src
+
+** orderless
+
+[[https://github.com/oantolin/orderless][orderless]]
+
+#+begin_src emacs-lisp
+  (use-package orderless
+    :ensure t
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides
+     '((file
+        (styles basic partial-completion)
+        ))
+     ))
+#+end_src
+
+** corfu.el - COmpletion in Region FUnction
 
 [[https://github.com/minad/corfu][corfu]]
 
 #+begin_src emacs-lisp
   (use-package corfu
-    :ensure t
+    :custom
+    (corfu-auto t)
     :init
     (global-corfu-mode))
 #+end_src
 
-* vterm
+** yasnippet
 
-[[https://github.com/akermu/emacs-libvterm/][vterm]]
+[[https://github.com/joaotavora/yasnippet][yasnippet]]
 
 #+begin_src emacs-lisp
-  (use-package vterm
-    :custom
-    (vterm-max-scrollback 10000))
+  (use-package yasnippet)
 #+end_src
 
-* Magit
+** rg
 
 #+begin_src emacs-lisp
-  (use-package magit)
+  (if (executable-find "rg")
+      (use-package rg)
+    (message "Please install ripgrep via `brew install rg`"))
+#+end_src
+
+* Emacs Packages
+** eglot
+
+#+begin_src emacs-lisp
+  (add-hook 'prog-mode-hook 'eglot-ensure)
+#+end_src
+
+* TODO Backup Files
+
+#+begin_src emacs-lisp
+  (setq backup-directory-alist '(("." . "~/EMACS_BACKUPS")))
+#+end_src
+
+* TODO emacs-dashboard
+
+[[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]]
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :ensure t
+    :config
+    (setq dashboard-items '((recents . 5)
+    			  (bookmarks . 5)))
+    (setq dashboard-center-content t)
+    ;; next line has no effect :-(
+    ;; (setq dashboard-vertically-center-content t)
+    (dashboard-setup-startup-hook))
 #+end_src
 
 * Done Message
@@ -605,3 +642,33 @@ Emacs was the foreground app but you couldn't use the keyboard to navigate. This
 #+begin_src emacs-lisp :noweb yes
   ;; End
 #+end_src
+
+* Disabled
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle no
+:END:
+
+** Which Key
+
+#+begin_src emacs-lisp
+  (require 'which-key)
+  (setq which-key-idle-delay 0.3)
+  (which-key-mode)
+#+end_src
+
+** vterm
+
+[[https://github.com/akermu/emacs-libvterm/][vterm]]
+
+#+begin_src emacs-lisp
+  (use-package vterm
+    :custom
+    (vterm-max-scrollback 10000))
+#+end_src
+
+** Magit
+
+#+begin_src emacs-lisp
+  (use-package magit)
+#+end_src
+
