@@ -56,7 +56,20 @@ Allow opening links in Incognito Mode
 #+end_src
 
 #+begin_src emacs-lisp
-  (defun oe/browse-url-handlers-safe-value-p (_) t)
+  ;; (defun oe/is-valid-p (val)
+  ;;   (and
+  ;;    (listp val)
+  ;;    (= (length val) 1)
+  ;;    (let ((entry (car val)))
+  ;;      (and (consp entry)
+  ;; 	  (string= "^https?://" (car entry))
+  ;; 	  (eq 'oe/demo (cdr entry))))))
+
+  ;; (message "%s" (oe/is-valid-p '(("^https?://" . oe/demo))))
+
+  (defun oe/browse-url-handlers-safe-value-p (val)
+    (message-box "%s" val)
+    t)
 
   (put 'browse-url-handlers 'safe-local-variable
        'oe/browse-url-handlers-safe-value-p)
@@ -73,6 +86,14 @@ Allow opening links in Incognito Mode
 
   (put 'olivetti-body-width 'safe-local-variable
        'oe/olivetti-body-width-safe-value-p)
+#+end_src
+
+* Disable Startup Message
+
+#+begin_src emacs-lisp
+  (setq inhibit-startup-message t)	; disable the welcome screen
+  (setq initial-scratch-message nil)	; remove the default scratch message
+
 #+end_src
 
 * Garbage Collection
@@ -129,7 +150,7 @@ Allow opening links in Incognito Mode
 * Font & Line Spacing
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font "JetBrains Mono:size=12")
+  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font:size=12")
   (set-face-attribute 'fixed-pitch nil :font (face-attribute 'default :font))
   (setq-default line-spacing 0.3)
 #+end_src
@@ -282,6 +303,7 @@ Automatically revert buffers when files change on disk.
        (python		. t)
        (groovy		. t)
        (java		. t)
+       (latex		. t)
        )))
 #+end_src
 
@@ -301,6 +323,7 @@ Automatically revert buffers when files change on disk.
     (add-to-list 'org-structure-template-alist '("py"	.	"src python"))
     (add-to-list 'org-structure-template-alist '("gro"	.	"src groovy"))
     (add-to-list 'org-structure-template-alist '("jav"	.	"src java"))
+    (add-to-list 'org-structure-template-alist '("la"	.	"src latex"))
     )
 #+end_src
 
@@ -395,7 +418,44 @@ Automatically revert buffers when files change on disk.
     (define-key org-mode-map (kbd "C-c n t") 'org-roam-tag-add))
 #+end_src
 
-* Recent Files
+** ox-latex
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'ox-latex
+      (add-to-list 'org-latex-classes
+	       '("scrartcl"
+		 "\\documentclass[11pt]{scrartcl}
+  [DEFAULT-PACKAGES]
+  [PACKAGES]
+  [EXTRA]"
+		 ("\\section{%s}" . "\\section*{%s}")
+		 ("\\subsection{%s}" . "\\subsection*{%s}")
+		 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+		 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+		 ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+
+  (with-eval-after-load 'ox-latex
+    (add-to-list 'org-latex-classes
+      '("scrreprt"
+	"\\documentclass[11pt]{scrreprt}
+  [DEFAULT-PACKAGES]
+  [PACKAGES]
+  [EXTRA]"
+	("\\chapter{%s}" . "\\chapter*{%s}")
+	("\\section{%s}" . "\\section*{%s}")
+	("\\subsection{%s}" . "\\subsection*{%s}")
+	("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+	("\\paragraph{%s}" . "\\paragraph*{%s}")
+	("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+#+end_src
+
+** engrave faces
+
+#+begin_src emacs-lisp
+  (use-package engrave-faces)
+#+end_src
+
+* Exclude Files from Recent Files
 
 #+begin_src emacs-lisp
   (use-package emacs
@@ -520,7 +580,7 @@ Automatically revert buffers when files change on disk.
   :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
-** TODO vertico
+** vertico
 
 There a few more things to try out that might really be helpful. Check the sample config of the project README.
 
@@ -593,33 +653,32 @@ There a few more things to try out that might really be helpful. Check the sampl
     (message "Please install ripgrep via `brew install rg`"))
 #+end_src
 
+** Which Key
+
+[[https://github.com/justbur/emacs-which-key][which-key]]
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :demand
+    :custom
+    (which-key-idle-delay 0.3)
+    :delight
+    :config
+    (which-key-mode)
+    )
+#+end_src
+
 * Emacs Packages
 ** eglot
 
 #+begin_src emacs-lisp
-  (add-hook 'prog-mode-hook 'eglot-ensure)
+  ;; (add-hook 'prog-mode-hook 'eglot-ensure)
 #+end_src
 
 * TODO Backup Files
 
 #+begin_src emacs-lisp
   (setq backup-directory-alist '(("." . "~/EMACS_BACKUPS")))
-#+end_src
-
-* TODO emacs-dashboard
-
-[[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]]
-
-#+begin_src emacs-lisp
-  (use-package dashboard
-    :ensure t
-    :config
-    (setq dashboard-items '((recents . 5)
-    			  (bookmarks . 5)))
-    (setq dashboard-center-content t)
-    ;; next line has no effect :-(
-    ;; (setq dashboard-vertically-center-content t)
-    (dashboard-setup-startup-hook))
 #+end_src
 
 * Done Message
@@ -648,14 +707,6 @@ There a few more things to try out that might really be helpful. Check the sampl
 :header-args:emacs-lisp: :tangle no
 :END:
 
-** Which Key
-
-#+begin_src emacs-lisp
-  (require 'which-key)
-  (setq which-key-idle-delay 0.3)
-  (which-key-mode)
-#+end_src
-
 ** vterm
 
 [[https://github.com/akermu/emacs-libvterm/][vterm]]
@@ -670,5 +721,21 @@ There a few more things to try out that might really be helpful. Check the sampl
 
 #+begin_src emacs-lisp
   (use-package magit)
+#+end_src
+
+** TODO emacs-dashboard
+
+[[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]]
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :ensure t
+    :config
+    (setq dashboard-items '((recents . 5)
+    			  (bookmarks . 5)))
+    (setq dashboard-center-content t)
+    ;; next line has no effect :-(
+    ;; (setq dashboard-vertically-center-content t)
+    (dashboard-setup-startup-hook))
 #+end_src
 

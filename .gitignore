@@ -1,3 +1,4 @@
 emacs/*
 !emacs/.config/emacs/Config.org
 !emacs/.config/emacs/Minimal.org
+.DS_Store
