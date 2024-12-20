@@ -1,3 +1,8 @@
+;; TODO
+;; bash shellcheck
+;; LaTeX schreiben, Export
+;; ChatGPT für Elja
+
 (use-package modus-themes
   :ensure t
   :demand t
@@ -16,18 +21,15 @@
 
   (modus-themes-mixed-fonts t)
 
-  ;; list of possible font weights
-  ;; thin ultralight extralight light semilight regular
-  ;; medium semibold bold bold heavy extrabold ultrabold
   (modus-themes-prompts '(bold))
   (modus-themes-completions nil)
   (modus-themes-headings
    '(
-     (0 . (1.296))
-     (1 . (1.215))
-     (2 . (1.138))
-     (3 . (1.067))
-     (t . (1.0))
+     (0 . (variable-pitch 1.296))
+     (1 . (variable-pitch 1.215))
+     (2 . (variable-pitch 1.138))
+     (3 . (variable-pitch 1.067))
+     (t . (variable-pitch 1.0))
 
      (agenda-date . (variable-pitch light 1.138))
      (agenda-structure . (variable-pitch 1.215))))
@@ -48,14 +50,14 @@
 TO can be 'light or 'dark"
     (pcase to
       ('light (load-theme 'modus-operandi-tinted t))
-      ('dark (load-theme 'modus-vivendi-tinted t)))
-    (desktop-save user-emacs-directory))
+      ('dark (load-theme 'modus-vivendi-tinted t))))
   
   (add-hook 'ns-system-appearance-change-functions #'oe/change-appearance))
 
 (use-package emacs
   :ensure nil
   :custom
+  (gc-cons-threshold (* 100 1024 2024))
   (inhibit-startup-message t)
   (mac-option-modifier 'none)
   (mac-function-modifier 'meta)
@@ -66,13 +68,23 @@ TO can be 'light or 'dark"
 	     (right-fringe . 0)
 	     (internal-border-width . 8))
 	   ()))
+  (recentf-exclude '(".excluded"))
+  (recentf-max-menu-items 10)
+  (recentf-max-saved-items 10)
+  (calendar-week-start-day 1)
+  (delete-by-moving-to-trash t)
+  (mac-system-move-file-to-trash-use-finder t)
+  (global-auto-revert-mode t)
+  (backup-directory-alist '(("." . "~/emacs-backups")))
   :config
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
-  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font:size=14")
+  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 140)
   (set-face-attribute 'fixed-pitch nil :font (face-attribute 'default :font))
+  (set-face-attribute 'variable-pitch nil :font "SF Pro" :height 140)
   (desktop-save-mode)
-  (desktop-read)
+  (recentf-mode)
+  (pixel-scroll-mode)
 
   :init
   (setq-default line-spacing 0.15)
@@ -88,8 +100,81 @@ TO can be 'light or 'dark"
     (oe/change-appearance ns-system-appearance)
     (message "Configuration reloaded"))
 
+  (defun oe/add-to-path (paths)
+    "Check each directory in PATHS, and add to exec-path and the environment path if it exists."
+    (dolist (path paths)
+      (let ((expanded-path (expand-file-name path)))
+        (if (file-directory-p expanded-path)
+      	  (progn
+      	    (add-to-list 'exec-path expanded-path)
+    	    (setenv "PATH" (concat expanded-path ":" (getenv "PATH")))
+      	    (message "Added to path: %s" expanded-path))
+      	(message "Path does not exist: %s" expanded-path)))))
+
+  (oe/add-to-path '("~/nonexistant"
+		    "/opt/homebrew/bin"
+		    "~/.ghcup/bin"
+		    "~/.pyenv/shims"
+		    "/Library/TeX/texbin/"))
+
+  (defun oe/browse-incognito (url &rest _args)
+    "FIXME: document this funtion"
+    (let ((browse-url-generic-program "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+	  (browse-url-generic-args '("--incognito")))
+      (browse-url-generic url)))
+
+  (defun oe/browse-url-handlers-safe-value-p (val)
+    "FIXME: write this fucntion"
+    t)
+
+  (put 'browse-url-handlers 'safe-local-variable
+       'oe/browse-url-handlers-safe-value-p)
+
+  (defun oe/kill-unsafe-buffers ()
+    (interactive)
+    (let ((buffers-to-kill
+	   (seq-filter
+	    (lambda (buffer)
+	      (let ((name (buffer-name buffer)))
+		(and name (string-match-p "gpg" name))))
+	    (buffer-list))))
+      (if buffers-to-kill
+	  (progn
+	    (dolist (buffer buffers-to-kill)
+	      (kill-buffer buffer))
+	    (message "Killed %d buffer(s) containing 'gpg' in their name." (length buffers-to-kill)))
+	(message "No buffers found containing 'gpg' in their name")))
+    (desktop-save user-emacs-directory))
+  
+  (defun oe/startup-message ()
+    ""
+    (message "Emacs loaded in %s with %d garbage collections."
+	     (format "%.2f seconds"
+		     (float-time
+		      (time-subtract after-init-time before-init-time)))
+	     gcs-done))
+
+  (defun oe/olivetti-body-width-safe-value-p (val)
+    (and
+     (integerp val)
+     (>= val 80)
+     (<= val 120)))
+
+  (put 'olivetti-body-width 'safe-local-variable
+       'oe/olivetti-body-width-safe-value-p)
+
+  (if (executable-find "gls")
+      (setq insert-directory-program "gls")
+    (message "Please install GNU coreutils via `brew install coreutils`"))
+  
+  :hook
+  (emacs-startup . oe/startup-message)
+  (kill-emacs . oe/kill-unsafe-buffers)
+	      
   :bind
-  ("s-r" . oe/reload-config))
+  (("s-." . (lambda () (interactive) (find-file user-init-file)))
+   ("s-r" . oe/reload-config)
+   ("C-c r" . recentf-open-files)))
 
 (use-package vertico
   :ensure t
@@ -123,8 +208,112 @@ TO can be 'light or 'dark"
 (use-package yasnippet
   :ensure t)
 
+(use-package eglot
+  :ensure t
+  :init
+  (defun oe/eglot-ensure ()
+    "Fixme: document"
+    (unless (member major-mode '(emacs-lisp-mode))
+      (eglot-ensure)))
+  :hook
+  (prog-mode . oe/eglot-ensure))
+
 (if (executable-find "rg")
     (use-package rg
       :ensure t)
   (message "Please install ripgrep via `brew install rg`"))
 		     
+(use-package which-key
+  :ensure t
+  :custom
+  (which-key-idle-delay 0.2)
+  :delight
+  :config
+  (which-key-mode))
+
+(use-package org
+  :custom
+  (org-return-follows-link t)
+  (org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))
+  :commands
+  (org-mode)
+  :config
+  (require 'org-mouse)
+  (use-package ob-swift
+    :ensure t)
+  (use-package ob-swiftui
+    :ensure t)
+  (use-package haskell-mode
+    :ensure t)
+  (require 'org-tempo)
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (shell . t)
+     (C . t)
+     (haskell . t)
+     (swift . t)
+     (swiftui . t)
+     (python . t)
+     (groovy . t)
+     (java . t)
+     (latex . t)))
+  (dolist (template
+	   '(("el" . "src emacs-lisp")
+	     ("sh" . "src shell")
+	     ("cl" . "src C :includes '(stdio.h) :flags -std=c90")
+	     ("cpp" . "src C++ :includes '(iostream) :flags -std=c++23")
+	     ("hs" . "src haskell")
+	     ("sw" . "src swift")
+	     ("swui" . "src swiftui")
+	     ("py" . "src python")
+	     ("gr" . "src groovy")
+	     ("ja" . "src java")
+	     ("la" . "src latex")))
+    (add-to-list 'org-structure-template-alist template)))
+  
+(use-package org-roam
+  :ensure t
+  :defer t
+  :init
+  (defconst oe/org-roam-directory "~/org/roam/")
+  (unless (file-directory-p oe/org-roam-directory)
+    (make-directory org/org-roam-directory t))
+
+  :custom
+  (org-roam-directory oe/org-roam-directory)
+  (org-roam-node-display-template
+   (concat
+    "${title:*}" (propertize "${tags:25}" 'face 'org-tag)))
+
+  :bind
+  (("C-c n f" . org-roam-node-find)
+   ("C-c n i" . org-roam-node-insert)
+   ("C-c n t" . org-roam-tag-add))
+
+  :config
+  (org-roam-setup))
+
+(use-package olivetti
+  :ensure t
+  :custom
+  (olivetti-body-width 80)
+  :hook
+  (org-mode . olivetti-mode))
+
+(use-package magit
+  :ensure t)
+
+(use-package reveal-in-osx-finder
+  :ensure t
+  :commands
+  (reveal-in-osx-finder)
+  :bind
+  ("C-c f" . reveal-in-osx-finder))
+
+(use-package chatgpt-shell
+  :ensure t
+  :custom
+  (chatgpt-shell-openai-key
+   (lambda ()
+     (auth-source-pick-first-password 'secret "openai-key"))))
