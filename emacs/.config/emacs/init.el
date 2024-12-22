@@ -59,6 +59,8 @@ TO can be 'light or 'dark"
   :custom
   (gc-cons-threshold (* 100 1024 2024))
   (inhibit-startup-message t)
+  (inhibit-compacting-font-caches t)
+  (frame-resize-pixelwise t)
   (mac-option-modifier 'none)
   (mac-function-modifier 'meta)
   (default-input-method "MacOSX")
