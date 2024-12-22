@@ -222,7 +222,17 @@ TO can be 'light or 'dark"
 
 (if (executable-find "rg")
     (use-package rg
-      :ensure t)
+      :ensure t
+      :init
+      (defun oe/rg-folding ()
+	"Enable outline-minor-mode on file entries in rg.el results."
+	(setq-local outline-regexp "^File: ")
+	(outline-minor-mode t))
+      :hook
+      (rg-filter . oe/rg-folding)
+      :bind
+      (:map rg-mode-map
+	    ("<tab>" . outline-cycle)))
   (message "Please install ripgrep via `brew install rg`"))
 		     
 (use-package which-key
