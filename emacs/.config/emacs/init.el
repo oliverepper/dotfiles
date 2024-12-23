@@ -68,7 +68,8 @@ TO can be 'light or 'dark"
   (default-frame-alist
    (append '((left-fringe . 0)
 	     (right-fringe . 0)
-	     (internal-border-width . 8))
+	     (internal-border-width . 8)
+	     (ns-transparent-titlebar t))
 	   ()))
   (recentf-exclude '(".excluded"))
   (recentf-max-menu-items 10)
