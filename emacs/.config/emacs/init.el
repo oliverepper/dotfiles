@@ -79,6 +79,7 @@ TO can be 'light or 'dark"
   (mac-system-move-file-to-trash-use-finder t)
   (global-auto-revert-mode t)
   (backup-directory-alist '(("." . "~/emacs-backups")))
+  (enable-recursive-minibuffers t)
   :config
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
