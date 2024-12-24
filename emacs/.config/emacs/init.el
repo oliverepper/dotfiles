@@ -311,3 +311,11 @@ TO can be 'light or 'dark"
   (chatgpt-shell-openai-key
    (lambda ()
      (auth-source-pick-first-password 'secret "openai-key"))))
+
+(use-package denote
+  :ensure t
+  :defer t
+  :custom
+  (denote-directory (expand-file-name "~/denote"))
+  :hook
+  (dired-mode . denote-dired-mode))
