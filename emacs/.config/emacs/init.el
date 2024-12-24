@@ -285,28 +285,6 @@ TO can be 'light or 'dark"
 	     ("ja" . "src java")
 	     ("la" . "src latex")))
     (add-to-list 'org-structure-template-alist template)))
-  
-(use-package org-roam
-  :ensure t
-  :defer t
-  :init
-  (defconst oe/org-roam-directory "~/org/roam/")
-  (unless (file-directory-p oe/org-roam-directory)
-    (make-directory org/org-roam-directory t))
-
-  :custom
-  (org-roam-directory oe/org-roam-directory)
-  (org-roam-node-display-template
-   (concat
-    "${title:*}" (propertize "${tags:25}" 'face 'org-tag)))
-
-  :bind
-  (("C-c n f" . org-roam-node-find)
-   ("C-c n i" . org-roam-node-insert)
-   ("C-c n t" . org-roam-tag-add))
-
-  :config
-  (org-roam-setup))
 
 (use-package olivetti
   :ensure t
