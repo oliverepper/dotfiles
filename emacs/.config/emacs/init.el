@@ -248,7 +248,7 @@ TO can be 'light or 'dark"
 (use-package org
   :custom
   (org-return-follows-link t)
-  (org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))
+  ;; (org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))
   :commands
   (org-mode)
   :config
