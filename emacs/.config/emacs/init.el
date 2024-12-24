@@ -305,6 +305,8 @@ TO can be 'light or 'dark"
 
 (use-package chatgpt-shell
   :ensure t
+  :commands
+  (chatgpt-shell-prompt-compose)	; should not be necessary
   :custom
   (chatgpt-shell-openai-key
    (lambda ()
