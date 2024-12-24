@@ -319,3 +319,10 @@ TO can be 'light or 'dark"
   (denote-directory (expand-file-name "~/denote"))
   :hook
   (dired-mode . denote-dired-mode))
+
+(use-package nerd-icons-dired
+  :ensure t
+  :custom
+  (nerd-icons-font-family (face-attribute 'default :font))
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
