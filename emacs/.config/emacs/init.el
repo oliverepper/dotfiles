@@ -323,6 +323,6 @@ TO can be 'light or 'dark"
 (use-package nerd-icons-dired
   :ensure t
   :custom
-  (nerd-icons-font-family (face-attribute 'default :font))
+  (nerd-icons-font-family (face-attribute 'default :family))
   :hook
   (dired-mode . nerd-icons-dired-mode))
