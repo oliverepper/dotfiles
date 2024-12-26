@@ -320,6 +320,7 @@ TO can be 'light or 'dark"
 
 (use-package denote
   :ensure t
+  :load-path "local/denote/"		; FIXME: Let's go with git for now.
   :defer t
   :custom
   (denote-directory (expand-file-name "~/denote"))
