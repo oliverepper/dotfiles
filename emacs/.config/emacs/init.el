@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; TODO
 ;; bash shellcheck
 ;; LaTeX schreiben, Export
