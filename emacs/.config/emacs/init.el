@@ -233,6 +233,9 @@ TO can be \\='light or \\='dark"
 (if (executable-find "rg")
     (use-package rg
       :ensure t
+      :demand t				; this ensures that the docstring is
+					; available without running the
+					; function, first.
       :init
       (defun oe/rg-folding ()
 	"Enable outline-minor-mode on file entries in rg.el results."
