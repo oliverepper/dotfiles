@@ -179,6 +179,7 @@ TO can be 'light or 'dark"
   :hook
   (emacs-startup . oe/startup-message)
   (kill-emacs . oe/kill-unsafe-buffers)
+  (dired-mode . dired-hide-details-mode)
 	      
   :bind
   (("s-." . (lambda () (interactive) (find-file user-init-file)))
