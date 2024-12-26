@@ -83,9 +83,14 @@ TO can be 'light or 'dark"
   :config
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
-  (set-face-attribute 'default nil :font "JetBrainsMono Nerd Font" :height 140)
-  (set-face-attribute 'fixed-pitch nil :font (face-attribute 'default :font))
-  (set-face-attribute 'variable-pitch nil :font "SF Pro" :height 140)
+  (set-face-attribute 'default nil
+		      :family "JetBrainsMono Nerd Font"
+		      :height 140)
+  (set-face-attribute 'fixed-pitch nil
+		      :family (face-attribute 'default :family))
+  (set-face-attribute 'variable-pitch nil
+		      :family "SF Pro"
+		      :height 140)
   (desktop-save-mode)
   (recentf-mode)
   (pixel-scroll-mode)
