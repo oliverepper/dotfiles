@@ -112,7 +112,7 @@ TO can be \\='light or \\='dark"
     (message "Configuration reloaded"))
 
   (defun oe/add-to-path (paths)
-    "Check each directory in PATHS, and add to exec-path and the environment path if it exists."
+    "Add existing directories from PATHS to exec-path and the environment path."
     (dolist (path paths)
       (let ((expanded-path (expand-file-name path)))
         (if (file-directory-p expanded-path)
