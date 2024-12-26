@@ -134,7 +134,7 @@ TO can be \\='light or \\='dark"
 	  (browse-url-generic-args '("--incognito")))
       (browse-url-generic url)))
 
-  (defun oe/browse-url-handlers-safe-value-p (val)
+  (defun oe/browse-url-handlers-safe-value-p (_val)
     "FIXME: write this fucntion"
     t)
 
