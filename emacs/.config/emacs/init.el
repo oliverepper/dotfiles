@@ -181,7 +181,9 @@ TO can be \\='light or \\='dark"
   :hook
   (emacs-startup . oe/startup-message)
   (kill-emacs . oe/kill-unsafe-buffers)
-  (dired-mode . dired-hide-details-mode)
+  (dired-mode . dired-hide-details-mode) ; FIXME: Could this be done
+					 ; in a use-package dired
+					 ; block?
 	      
   :bind
   (("s-." . (lambda () (interactive) (find-file user-init-file)))
