@@ -49,7 +49,7 @@
   (defun oe/change-appearance (to)
     "Change theme based on TO
 
-TO can be 'light or 'dark"
+TO can be \\='light or \\='dark"
     (pcase to
       ('light (load-theme 'modus-operandi-tinted t))
       ('dark (load-theme 'modus-vivendi-tinted t))))
