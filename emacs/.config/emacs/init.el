@@ -79,7 +79,7 @@ TO can be \\='light or \\='dark"
   (calendar-week-start-day 1)
   (delete-by-moving-to-trash t)
   (mac-system-move-file-to-trash-use-finder t)
-  (global-auto-revert-mode t)
+  ;; (global-auto-revert-mode t)
   (backup-directory-alist '(("." . "~/emacs-backups")))
   (enable-recursive-minibuffers t)
   :config
@@ -200,6 +200,13 @@ Prompt for URL when called interactively."
   (("s-." . (lambda () (interactive) (find-file user-init-file)))
    ("s-r" . oe/reload-config)
    ("C-c r" . recentf-open-files)))
+
+(use-package autorevert
+  :ensure nil
+  :custom
+  (auto-revert-verbose t)
+  :hook
+  (after-init . global-auto-revert-mode))
 
 (use-package dired
   :hook
