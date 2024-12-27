@@ -128,8 +128,22 @@ TO can be \\='light or \\='dark"
 		    "~/.pyenv/shims"
 		    "/Library/TeX/texbin/"))
 
+  (defun oe/url-at-point ()
+    "Return the URL at point, or nil if none is found."
+    (let ((url-regexp "<?\\(https?://[[:alnum:]/._~%-]+\\)>?"))
+      (when (thing-at-point-looking-at url-regexp)
+	(match-string 1))))
+
   (defun oe/browse-incognito (url &rest _args)
-    "FIXME: document this funtion"
+    "Opens URL in an incognito Chrome instance.
+Prompt for URL when called interactively."
+    (interactive
+     (list
+      (or
+       (oe/url-at-point)
+       (if (use-region-p)
+	   (buffer-substring-no-properties (region-beginning) (region-end))) ; get selected text
+       (read-string "Enter URL: "))))	; promp for URL if no region is selected
     (let ((browse-url-generic-program "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 	  (browse-url-generic-args '("--incognito")))
       (browse-url-generic url)))
