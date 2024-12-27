@@ -213,6 +213,7 @@ Prompt for URL when called interactively."
   (after-init . global-auto-revert-mode))
 
 (use-package dired
+  :ensure nil
   :hook
   (dired-mode . dired-hide-details-mode))
 
