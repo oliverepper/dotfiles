@@ -198,7 +198,8 @@ TO can be \\='light or \\='dark"
 
 (use-package marginalia
   :ensure t
-  :init
+  :after vertico
+  :config
   (marginalia-mode))
 
 (use-package orderless
