@@ -59,7 +59,8 @@ TO can be \\='light or \\='dark"
 (use-package emacs
   :ensure nil
   :custom
-  (gc-cons-threshold (* 100 1024 2024))
+  (gc-cons-threshold most-positive-fixnum)
+  (gc-cons-percentage 1.0)
   (inhibit-startup-message t)
   (inhibit-compacting-font-caches t)
   (frame-resize-pixelwise t)
@@ -193,7 +194,10 @@ Prompt for URL when called interactively."
     (message "Please install GNU coreutils via `brew install coreutils`"))
   
   :hook
-  (emacs-startup . oe/startup-message)
+  (emacs-startup . (lambda ()
+		     (setq gc-cons-threshold (* 100 1024 1024))
+		     (setq gc-cons-percentage 0.2)
+		     (oe/startup-message)))
   (kill-emacs . oe/kill-unsafe-buffers)
   
   :bind
