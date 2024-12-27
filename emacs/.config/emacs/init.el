@@ -231,9 +231,8 @@ Prompt for URL when called interactively."
 
 (use-package marginalia
   :ensure t
-  :after vertico
-  :config
-  (marginalia-mode))
+  :hook
+  (after-init . marginalia-mode))
 
 (use-package orderless
   :ensure t
