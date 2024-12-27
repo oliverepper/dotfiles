@@ -128,7 +128,7 @@ TO can be \\='light or \\='dark"
 		    "~/.pyenv/shims"
 		    "/Library/TeX/texbin/"))
 
-  (defun oe/url-at-point ()
+  (defun -oe/url-at-point ()
     "Return the URL at point, or nil if none is found."
     (let ((url-regexp "<?\\(https?://[[:alnum:]/._~%-]+\\)>?"))
       (when (thing-at-point-looking-at url-regexp)
@@ -140,7 +140,7 @@ Prompt for URL when called interactively."
     (interactive
      (list
       (or
-       (oe/url-at-point)
+       (-oe/url-at-point)
        (if (use-region-p)
 	   (buffer-substring-no-properties (region-beginning) (region-end))) ; get selected text
        (read-string "Enter URL: "))))	; promp for URL if no region is selected
