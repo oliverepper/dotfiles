@@ -245,8 +245,10 @@ Prompt for URL when called interactively."
   :ensure t
   :custom
   (corfu-auto t)
-  :init
-  (global-corfu-mode))
+  (corfu-popupinfo-mode t)
+  (corfu-popupinfo-delay '(1.25 . 0.3))
+  :hook
+  (after-init . global-corfu-mode))
 
 (use-package rainbow-delimiters
   :ensure t
