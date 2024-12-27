@@ -226,8 +226,8 @@ Prompt for URL when called interactively."
 
 (use-package vertico
   :ensure t
-  :init
-  (vertico-mode))
+  :hook
+  (after-init . vertico-mode))
 
 (use-package marginalia
   :ensure t
