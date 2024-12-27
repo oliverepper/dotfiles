@@ -260,7 +260,7 @@ Prompt for URL when called interactively."
 
 (use-package eglot
   :ensure t
-  :init
+  :config
   (defun oe/eglot-ensure ()
     "Fixme: document"
     (unless (member major-mode '(emacs-lisp-mode))
