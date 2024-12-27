@@ -216,6 +216,13 @@ Prompt for URL when called interactively."
   :hook
   (dired-mode . dired-hide-details-mode))
 
+(use-package server
+  :ensure nil
+  :defer 1
+  :config
+  (unless (server-running-p)
+    (server-start)))
+
 (use-package vertico
   :ensure t
   :init
