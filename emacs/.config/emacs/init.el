@@ -333,7 +333,14 @@ TO can be \\='light or \\='dark"
   :custom
   (denote-directory (expand-file-name "~/denote"))
   :hook
-  (dired-mode . denote-dired-mode))
+  (dired-mode . denote-dired-mode)
+  :bind
+  ( :map global-map
+    ("C-c n n" . denote-open-or-create)
+    ("C-c n r" . denote-rename-file)
+
+    :map text-mode-map
+    ("C-c n i" . denote-link-or-create)))
 
 (use-package nerd-icons-dired
   :ensure t
