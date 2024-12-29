@@ -60,7 +60,8 @@ TO can be \\='light or \\='dark"
        `(fringe ((t :background ,bg :foreground ,bg)))
        `(window-divider ((t :background ,bg :foreground ,bg)))
        `(window-divider-first-pixel ((t :background ,bg :foreground ,bg)))
-       `(window-divider-last-pixel ((t :background ,bg :foreground ,bg))))))
+       `(window-divider-last-pixel ((t :background ,bg :foreground ,bg)))
+       `(olivetti-fringe ((t :background ,bg :foreground ,bg))))))
   
   (add-hook 'ns-system-appearance-change-functions #'oe/change-appearance)
   (add-hook 'enable-theme-functions #'oe/hide-fringe))
