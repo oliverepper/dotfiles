@@ -302,6 +302,10 @@ Prompt for URL when called interactively."
   ;; (org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))
   :commands
   (org-mode)
+  :custom-face
+  (org-document-info-keyword ((t (:height 0.937 :weight extralight))))
+  (org-meta-line ((t (:height 0.937 :weight extralight))))
+  (org-block-begin-line ((t (:height 0.937 :weight extralight))))
   :config
   (require 'org-mouse)
   (use-package ob-swift
