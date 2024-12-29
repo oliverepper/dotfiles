@@ -299,7 +299,6 @@ Prompt for URL when called interactively."
 (use-package org
   :custom
   (org-return-follows-link t)
-  ;; (org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))
   :commands
   (org-mode)
   :custom-face
