@@ -53,8 +53,17 @@ TO can be \\='light or \\='dark"
     (pcase to
       ('light (load-theme 'modus-operandi-tinted t))
       ('dark (load-theme 'modus-vivendi-tinted t))))
+
+  (defun oe/hide-fringe (&rest _)
+    (let ((bg (face-background 'default)))
+      (custom-set-faces
+       `(fringe ((t :background ,bg :foreground ,bg)))
+       `(window-divider ((t :background ,bg :foreground ,bg)))
+       `(window-divider-first-pixel ((t :background ,bg :foreground ,bg)))
+       `(window-divider-last-pixel ((t :background ,bg :foreground ,bg))))))
   
-  (add-hook 'ns-system-appearance-change-functions #'oe/change-appearance))
+  (add-hook 'ns-system-appearance-change-functions #'oe/change-appearance)
+  (add-hook 'enable-theme-functions #'oe/hide-fringe))
 
 (use-package emacs
   :ensure nil
@@ -69,9 +78,8 @@ TO can be \\='light or \\='dark"
   (default-input-method "MacOSX")
   (custom-file (locate-user-emacs-file "custom.el"))
   (default-frame-alist
-   (append '((left-fringe . 0)
-	     (right-fringe . 0)
-	     (internal-border-width . 8)
+   (append '((internal-border-width . 8)
+	     (right-divider-width . 8)
 	     (ns-transparent-titlebar t))
 	   ()))
   (recentf-exclude '(".excluded"))
