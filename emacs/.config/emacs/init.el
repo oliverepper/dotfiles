@@ -260,6 +260,8 @@ Prompt for URL when called interactively."
 
 (use-package eglot
   :ensure t
+  :custom
+  (eglot-autoshutdown t)
   :config
   (defun oe/eglot-ensure ()
     "Fixme: document"
