@@ -157,6 +157,7 @@ Prompt for URL when called interactively."
        'oe/browse-url-handlers-safe-value-p)
 
   (defun oe/kill-unsafe-buffers ()
+    "FIXME: document AND make a package out of this. The idea is good!"
     (interactive)
     (let ((buffers-to-kill
 	   (seq-filter
@@ -173,7 +174,7 @@ Prompt for URL when called interactively."
     (desktop-save user-emacs-directory))
   
   (defun oe/startup-message ()
-    ""
+    "FIXME: document this"
     (message "Emacs loaded in %s with %d garbage collections."
 	     (format "%.2f seconds"
 		     (float-time
