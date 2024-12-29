@@ -385,6 +385,7 @@ Prompt for URL when called interactively."
   :custom
   (denote-directory (expand-file-name "~/denote"))
   (denote-known-keywords nil)
+  (denote-rename-buffer-mode t)
   :hook
   (dired-mode . denote-dired-mode)
   :bind
