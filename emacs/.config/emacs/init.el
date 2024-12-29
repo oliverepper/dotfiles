@@ -25,7 +25,7 @@
 
   (modus-themes-prompts '(bold))
   (modus-themes-completions nil)
-  (modus-themes-headings
+  (modus-themes-headings		; https://typescale.com
    '(
      (0 . (variable-pitch 1.296))
      (1 . (variable-pitch 1.215))
