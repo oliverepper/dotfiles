@@ -297,6 +297,10 @@ Prompt for URL when called interactively."
   :config
   (which-key-mode))
 
+(use-package haskell-mode
+  :ensure t
+  :defer t)
+
 (use-package org
   :custom
   (org-return-follows-link t)
@@ -311,8 +315,6 @@ Prompt for URL when called interactively."
   (use-package ob-swift
     :ensure t)
   (use-package ob-swiftui
-    :ensure t)
-  (use-package haskell-mode
     :ensure t)
   (require 'org-tempo)
   (org-babel-do-load-languages
